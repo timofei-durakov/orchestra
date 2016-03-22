@@ -1,0 +1,20 @@
+---
+  cloud:
+    username: "admin"
+    projectname: "admin"
+    password: "stack"
+    auth_url: "http://192.168.102.11:5000/v2.0/tokens"
+  vm_template:
+    flavorRef: "42"
+    networkRef: "156c9037-c1c1-477d-9ec3-575dd094e014"
+    imageRef: "6aab1111-03ba-4354-9653-cad734066e4c"
+    name_template: "vm_%d"
+  scenarios:
+     simple:
+       parallel: 2
+       steps:
+       - build
+       - wait_for_active
+       - live_migrate
+       - wait_for_active
+       - delete
