@@ -34,6 +34,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   }
 
   def processNextStep = {
+    Thread.sleep(5000)
     if (currentStep isEmpty)
       currentStep = Some(0)
     else
@@ -56,6 +57,22 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     nova.get ! "delete"
   }
 
+  def create_floating_ip = {
+    nova.get ! "create_floating_ip"
+  }
+
+  def associate_floating_ip = {
+    nova.get ! "associate_floating_ip"
+  }
+
+  def initPing = {
+    nova.get ! "ping_init"
+  }
+
+  def stopPing = {
+    nova.get ! "ping_stop"
+  }
+
   def receive = {
     case x: AuthResponse => {
       access = Some(x.access)
@@ -66,6 +83,10 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     case "build" => build
     case "processNextStep" => processNextStep
     case "start" => init
+    case "create_floating_ip" => create_floating_ip
+    case "associate_floating_ip" => associate_floating_ip
+    case "start_ping" => initPing
+    case "stop_ping" => stopPing
     case "live_migrate" => liveMigrate
     case "wait_for_active" => wait_for_active
     case "delete" => delete

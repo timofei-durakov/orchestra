@@ -1,8 +1,7 @@
 package org.orchestra.actor
 
-import akka.actor.{Props, Actor}
+import akka.actor.{ActorRef, Props, Actor, ActorLogging}
 import akka.pattern.pipe
-import akka.actor.ActorLogging
 import org.orchestra.actor.model._
 import org.orchestra.config.VmTemplate
 import spray.client.pipelining._
@@ -60,12 +59,12 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
       val diskConfig = map("OS-DCF:diskConfig").convertTo[String]
       val availabilityZone = map("OS-EXT-AZ:availability_zone").convertTo[String]
       val host = if (map("OS-EXT-SRV-ATTR:host").isInstanceOf[JsNull.type]) null else map("OS-EXT-SRV-ATTR:host").convertTo[String]
-      val hypervisorHostName = if(map("OS-EXT-SRV-ATTR:hypervisor_hostname").isInstanceOf[JsNull.type]) null else map("OS-EXT-SRV-ATTR:hypervisor_hostname").convertTo[String]
+      val hypervisorHostName = if (map("OS-EXT-SRV-ATTR:hypervisor_hostname").isInstanceOf[JsNull.type]) null else map("OS-EXT-SRV-ATTR:hypervisor_hostname").convertTo[String]
       val instanceName = map("OS-EXT-SRV-ATTR:instance_name").convertTo[String]
       val powerState = map("OS-EXT-STS:power_state").convertTo[Int]
       val taskState = if (map("OS-EXT-STS:task_state").isInstanceOf[JsNull.type]) null else map("OS-EXT-STS:task_state").convertTo[String]
       val vmState = map("OS-EXT-STS:vm_state").convertTo[String]
-      val launchedAt = if(map("OS-SRV-USG:launched_at").isInstanceOf[JsNull.type ]) null else map("OS-SRV-USG:launched_at").convertTo[String]
+      val launchedAt = if (map("OS-SRV-USG:launched_at").isInstanceOf[JsNull.type]) null else map("OS-SRV-USG:launched_at").convertTo[String]
       val terminatedAt = if (map("OS-SRV-USG:terminated_at").isInstanceOf[JsNull.type]) null else map("OS-SRV-USG:terminated_at").convertTo[String]
       val accessIPv4 = map("accessIPv4").convertTo[String]
       val accessIPv6 = map("accessIPv6").convertTo[String]
@@ -101,6 +100,7 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val createServerRequestFormat = jsonFormat1(CreateServerRequest)
   implicit val createServerResponseFormat = jsonFormat5(CreateServerResponse)
   implicit val createServerResponseWrapperFormat = jsonFormat1(CreateServerResponseWrapper)
+
   implicit object liveMigrationFormat extends RootJsonFormat[LiveMigration] {
     def write(lm: LiveMigration) = JsObject(
       "host" -> (if (lm.host.isEmpty) JsNull else JsString(lm.host.get)),
@@ -110,14 +110,19 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
     def read(value: JsValue) = {
       val map = value.asJsObject.fields
-      val host = if (map.contains("host")) Some(map("host").convertTo[String]) else None:Option[String]
+      val host = if (map.contains("host")) Some(map("host").convertTo[String]) else None: Option[String]
       val block_migration = map("block_migration").convertTo[Boolean]
       val disk_over_commit = map("disk_over_commit").convertTo[Boolean]
-      new LiveMigration(host, block_migration,disk_over_commit)
+      new LiveMigration(host, block_migration, disk_over_commit)
     }
   }
+
   implicit val liveMigrationRequestFormat = jsonFormat1(LiveMigrationRequest)
   implicit val detailServerResponseFormat = jsonFormat1(DetailServerResponse)
+  implicit val floatingIPFormat = jsonFormat5(FloatingIP)
+  implicit val floatingIPResponseFormat = jsonFormat1(FloatingIPResponse)
+  implicit val floatingIPAddressFormat = jsonFormat1(FloatingIPAddress)
+  implicit val AddFloatingIPRequestFormat = jsonFormat1(AddFloatingIPRequest)
 }
 
 object NovaActor {
@@ -126,13 +131,16 @@ object NovaActor {
 }
 
 
-class NovaActor(instanceName:String, endpoint: String, var token: String, val vmTemplate: VmTemplate) extends Actor
+class NovaActor(instanceName: String, endpoint: String, var token: String, val vmTemplate: VmTemplate) extends Actor
   with NovaJsonSupport with ActorLogging {
 
   var serverId = None: Option[String]
   var statusToWait = None: Option[String]
   var requestedOperation = None: Option[String]
+  var floatingIP = None: Option[String]
+  var ping = None: Option[ActorRef]
   import context.dispatcher
+
   def list: Unit = {
     val pipeline: HttpRequest => Future[DetailServersResponse] =
       (
@@ -186,11 +194,40 @@ class NovaActor(instanceName:String, endpoint: String, var token: String, val vm
     response.pipeTo(sender())
   }
 
+  def createFloatingIP = {
+    val pipeline: HttpRequest => Future[FloatingIPResponse] = (
+      addHeader("X-Auth-Token", token)
+        ~> sendReceive
+        ~> unmarshal[FloatingIPResponse]
+      )
+    val response: Future[FloatingIPResponse] = pipeline(Post(endpoint + "/os-floating-ips"))
+    response.pipeTo(self)
+  }
+
+  def associateFloatingIP = {
+    val floatingIpAdress = FloatingIPAddress(address = floatingIP.get)
+    val addFloatingIpRequest = AddFloatingIPRequest(addFloatingIp = floatingIpAdress)
+    val pipeline: HttpRequest => Future[HttpResponse] = (
+      addHeader("X-Auth-Token", token)
+        ~> sendReceive
+        ~> unmarshal[HttpResponse]
+      )
+    val response: Future[HttpResponse] = pipeline(Post(endpoint + "/servers/" + serverId.get + "/action",
+      addFloatingIpRequest))
+    requestedOperation = Some("associate_floating_ip")
+    response.pipeTo(self)
+  }
+
+  def manageCreatedFloatingIp(createdFloatingIP: FloatingIP) = {
+    floatingIP = Some(createdFloatingIP.ip)
+    context.parent ! "processNextStep"
+  }
+
   private def getDetails = {
     val pipeline: HttpRequest => Future[DetailServerResponse] = (
       addHeader("X-Auth-Token", token)
-      ~> sendReceive
-      ~> unmarshal[DetailServerResponse]
+        ~> sendReceive
+        ~> unmarshal[DetailServerResponse]
       )
     val response: Future[DetailServerResponse] = pipeline(Get(endpoint + "/servers/" + serverId.get))
     response
@@ -200,6 +237,7 @@ class NovaActor(instanceName:String, endpoint: String, var token: String, val vm
     serverId = Some(createdInstance.server.id)
     context.parent ! "processNextStep"
   }
+
   def wait_for_active = {
     import context.system
     system.log.info("wait for active while current task status is {}", statusToWait.getOrElse("None"))
@@ -212,8 +250,8 @@ class NovaActor(instanceName:String, endpoint: String, var token: String, val vm
 
   def verifyStatus(status: DetailServerResponse) = {
     import context.system
-    system.log.info("in verifyStatus method statusToWait={} receivedStatus={}",statusToWait.get, status.server.status)
-    if (status.server.status == statusToWait.get){
+    system.log.info("in verifyStatus method statusToWait={} receivedStatus={}", statusToWait.get, status.server.status)
+    if (status.server.status == statusToWait.get) {
       statusToWait = None
       context.parent ! "processNextStep"
     } else {
@@ -227,17 +265,31 @@ class NovaActor(instanceName:String, endpoint: String, var token: String, val vm
       context.parent ! "processNextStep"
     }
   }
+  def pingStart = {
+    ping = Some(context.actorOf(PingActor.props(floatingIP.get), "ping"))
+    ping.get ! "start"
+    context.parent ! "processNextStep"
+  }
+
+  def pingStop = {
+    ping.get ! "stop"
+    context.parent ! "processNextStep"
+  }
 
   def receive = {
-
     case "detailed-list" => list
     case "create" => create
+    case "create_floating_ip" => createFloatingIP
+    case "associate_floating_ip" => associateFloatingIP
     case "delete" => delete
     case "live-migration" => liveMigration
     case "details" => details
     case "wait_for_active" => wait_for_active
+    case "ping_init" => pingStart
+    case "ping_stop" => pingStop
     case result: CreateServerResponseWrapper => dispatchCreatedInstance(result)
     case result: DetailServerResponse => verifyStatus(result)
+    case result: FloatingIPResponse => manageCreatedFloatingIp(result.floating_ip)
     case result: HttpResponse => dispatchResponse(result)
   }
 }

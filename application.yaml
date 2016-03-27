@@ -6,15 +6,20 @@
     auth_url: "http://192.168.102.11:5000/v2.0/tokens"
   vm_template:
     flavorRef: "42"
-    networkRef: "156c9037-c1c1-477d-9ec3-575dd094e014"
-    imageRef: "6aab1111-03ba-4354-9653-cad734066e4c"
+    networkRef: "da12be77-3bc1-493e-aea4-8964a3915db3"
+    imageRef: "f9c87d6e-7381-474c-8e16-89545b8dcb39"
     name_template: "vm_%d"
   scenarios:
      simple:
-       parallel: 2
+       parallel: 1
        steps:
        - build
+       - create_floating_ip
        - wait_for_active
+       - associate_floating_ip
+       - wait_for_active
+       - start_ping
        - live_migrate
        - wait_for_active
+       - stop_ping
        - delete

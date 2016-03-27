@@ -1,5 +1,7 @@
 package org.orchestra.actor.model
 
+import java.util.OptionalInt
+
 /**
   * Created by tdurakov on 19.03.16.
   */
@@ -46,4 +48,8 @@ final case class CreateServerResponseWrapper(server: CreateServerResponse)
 
 final case class LiveMigration(host: Option[String] = None, block_migration: Boolean = false, disk_over_commit: Boolean = false)
 final case class LiveMigrationRequest(`os-migrateLive`: LiveMigration)
+final case class FloatingIP(fixed_ip: Option[String], id: Int, instance_id: Option[String], ip: String, pool: String)
+final case class FloatingIPResponse(floating_ip: FloatingIP)
+final case class FloatingIPAddress(address: String)
+final case class AddFloatingIPRequest(addFloatingIp: FloatingIPAddress)
 
