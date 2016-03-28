@@ -1,7 +1,5 @@
 package org.orchestra.actor.model
 
-import java.util.OptionalInt
-
 /**
   * Created by tdurakov on 19.03.16.
   */

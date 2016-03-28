@@ -161,7 +161,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   }
 
   def processNextStep = {
-    if (currentStep isEmpty)
+    if (currentStep.isEmpty)
       currentStep = Some(0)
     else
       currentStep = Some(currentStep.get + 1)
