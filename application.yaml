@@ -16,7 +16,11 @@
   scenarios:
      simple:
        id: 1
-       parallel: 1
+       parallel: 2
+       on_finish:
+       - shutdown_telegraph
+       on_sync_events:
+       - start_telegraph
        steps:
        - build
        - create_floating_ip

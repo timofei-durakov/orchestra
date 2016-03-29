@@ -37,25 +37,28 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
 
   def handlePingMessage(message: String) = {
     context.system.log.info("ping message='{}' for server={} received", message, vmName)
+    var time = "0"
+    if (message.endsWith("ms")) {
+      if (!instance_reachable) {
+        instance_reachable = true
+        context.parent ! "processNextStep"
+      }
+      val timeStart = message.lastIndexOf("=")
+      val timeEnd = message.lastIndexOf(" ")
+      time = message.substring(timeStart + 1, timeEnd)
+    }
     val pattern = "\\[(.*?)\\]".r
     val timestamp = pattern.findFirstIn(message)
-    var time = "0"
-    if (!timestamp.isEmpty) {
-      var ts = timestamp.get
-      ts = ts.substring(1, ts.length - 1)
-      if (!message.endsWith("Unreachable")) {
-        val timeStart = message.lastIndexOf("=")
-        val timeEnd = message.lastIndexOf(" ")
-        time = message.substring(timeStart + 1, timeEnd)
-        if (!instance_reachable) {
-          instance_reachable = true
-          context.parent ! "processNextStep"
-        }
-      }
-      val writeData = "pings,vm_name=" + vmName + ",address=" + address + ",run_number=" + runNumber +
-        " value=" + time + " " + ts.replace(".", "").toLong * 1000
-      influx ! writeData
+    var ts: Long = 0
+    if (timestamp.isEmpty) {
+      ts = System.currentTimeMillis() * 1000000
+    } else {
+      ts = timestamp.get.substring(1, timestamp.get.length - 1).replace(".", "").toLong * 1000
     }
+    val writeData = "pings,vm_name=" + vmName + ",address=" + address + ",run_number=" + runNumber +
+      " value=" + time + " " + ts
+    influx ! writeData
+    //    }
 
   }
 

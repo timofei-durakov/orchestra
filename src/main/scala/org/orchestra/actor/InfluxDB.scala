@@ -26,7 +26,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   import context.dispatcher
 
   def sendData(message:String) = {
-    context.system.log.info("ping message {}  is about to be send to influx", message )
+    context.system.log.info("ping message {} is about to be send to influx", message )
     val pipeline: HttpRequest => Future[HttpResponse] = (
         sendReceive
         ~> unmarshal[HttpResponse]

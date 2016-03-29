@@ -175,11 +175,13 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
       currentStep = Some(0)
     else
       currentStep = Some(currentStep.get + 1)
-    context.system.log.info("next step is about to be triggered {} for instance {}", scenario(currentStep.get), instanceName)
+
     if (currentStep.get == scenario.length) {
+      context.system.log.info("shutting down worker for {}", instanceName)
       context.children.foreach((a: ActorRef) => context stop a)
       context stop self
     } else {
+      context.system.log.info("next step is about to be triggered {} for instance {}", scenario(currentStep.get), instanceName)
       self ! scenario(currentStep.get)
     }
 
@@ -272,7 +274,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
       )
-    val liveMigration = LiveMigrationRequest(LiveMigration(block_migration = true))
+    val liveMigration = LiveMigrationRequest(LiveMigration())
     val response: Future[HttpResponse] = pipeline(Post(endpoint.get + "/servers/" + serverId.get + "/action", liveMigration))
     requestedOperation = Some("live_migration")
     response.pipeTo(self)
@@ -287,7 +289,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
 
     val response: Future[HttpResponse] = pipeline(Delete(endpoint.get + "/servers/" + serverId.get))
     requestedOperation = Some("delete")
-    response.pipeTo(sender())
+    response.pipeTo(self)
   }
 
   def associate_floating_ip = {
@@ -321,7 +323,8 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   def handleHttpResponse(response: HttpResponse) = {
     context.system.log.info("http response receved with code {} for server {} current requested operation is {}",
       response.status.intValue, instanceName, requestedOperation.get)
-    if (response.status.intValue == 202 || response.status.intValue == 200) {
+    if (response.status.intValue == 202 || response.status.intValue == 200 ||
+    response.status.intValue == 204) {
       requestedOperation = None
       self ! "processNextStep"
     }
@@ -336,6 +339,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   def pingStop = {
     context.system.log.info("ping termination for server {} is triggered", instanceName)
     ping.get ! "stop"
+    self ! "processNextStep"
   }
 
   def syncExecution = {
