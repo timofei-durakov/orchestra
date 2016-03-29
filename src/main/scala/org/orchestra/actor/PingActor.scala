@@ -53,7 +53,7 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
         }
       }
       val writeData = "pings,vm_name=" + vmName + ",address=" + address + ",run_number=" + runNumber +
-        " time=" + time + " " + ts.substring(0, ts.indexOf("."))
+        " value=" + time + " " + ts.replace(".", "").toLong * 1000
       influx ! writeData
     }
 
