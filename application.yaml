@@ -1,13 +1,13 @@
 ---
   cloud:
     username: "admin"
-    projectname: "admin"
-    password: "stack"
-    auth_url: "http://192.168.102.11:5000/v2.0/tokens"
+    projectname: "demo"
+    password: "secret"
+    auth_url: "http://172.16.166.13:5000/v2.0/tokens"
   vm_template:
     flavorRef: "42"
-    networkRef: "a55953da-58a1-43f5-9ec0-953be74ca328"
-    imageRef: "f0fe10b3-1181-4774-a1bd-51c7b203ca11"
+    networkRef: "69024462-61f6-4441-97b4-611b6a38290c"
+    imageRef: "45ec29dc-b96a-4ebc-bd8c-b43c91781550"
     name_template: "vm_%d"
   run_number: 1
   backend:
