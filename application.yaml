@@ -6,19 +6,23 @@
     auth_url: "http://192.168.102.11:5000/v2.0/tokens"
   vm_template:
     flavorRef: "42"
-    networkRef: "da12be77-3bc1-493e-aea4-8964a3915db3"
-    imageRef: "f9c87d6e-7381-474c-8e16-89545b8dcb39"
+    networkRef: "a55953da-58a1-43f5-9ec0-953be74ca328"
+    imageRef: "f0fe10b3-1181-4774-a1bd-51c7b203ca11"
     name_template: "vm_%d"
+  run_number: 1
+  backend:
+    influx_host: "http://monit-ent.vm.mirantis.net:8086"
   scenarios:
      simple:
+       id: 1
        parallel: 1
        steps:
        - build
        - create_floating_ip
        - wait_for_active
        - associate_floating_ip
-       - wait_for_active
        - start_ping
+       - sync_execution
        - live_migrate
        - wait_for_active
        - stop_ping

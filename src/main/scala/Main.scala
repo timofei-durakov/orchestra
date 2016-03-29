@@ -3,8 +3,7 @@ import java.io.File
 
 
 import akka.actor.{ActorSystem}
-import org.orchestra.actor.InstanceConductorActor
-import org.orchestra.actor.Reaper
+import org.orchestra.actor.{CountdownLatch, InfluxDB, InstanceConductorActor, Reaper}
 import org.orchestra.actor.Reaper.WatchMe
 import scala.io.Source
 import net.jcazevedo.moultingyaml._
@@ -25,11 +24,17 @@ object Main extends ConfigYamlProtocol {
     println(data)
     val config = data.parseYaml.convertTo[Config]
     val system = ActorSystem("OrchestraSystem")
-    val currentScenario = config.scenarios.head._2
+
     val reaper  = system.actorOf(Reaper.props, name = "reaper")
+    val influx = system.actorOf(InfluxDB.props(config.backend.influx_host, config.backend.database))
+
+    val currentScenario = config.scenarios.head._2
+
+    val countDownLatch = system.actorOf(CountdownLatch.props(currentScenario.parallel))
+
     for (i <- 1 to currentScenario.parallel) {
       val conductor = system.actorOf(InstanceConductorActor.props(idGenerator,
-        config.cloud, config.vm_template, currentScenario.steps), name = "conductor" + idGenerator)
+        config.cloud, config.vm_template, currentScenario.steps, config.run_number, currentScenario.id, influx, countDownLatch), name = "conductor" + idGenerator)
       reaper ! WatchMe(conductor)
       conductor ! "start"
       idGenerator += 1

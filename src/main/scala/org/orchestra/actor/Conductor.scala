@@ -128,12 +128,14 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 }
 
 object InstanceConductorActor {
-  def props(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[String]): Props = Props(
-    new InstanceConductorActor(id, cloud, vmTemplate, scenario))
+  def props(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[String],
+            runNumber: Int, scenarioId: Int, influx:ActorRef, countdownLath: ActorRef): Props = Props(
+    new InstanceConductorActor(id, cloud, vmTemplate, scenario, runNumber, scenarioId, influx, countdownLath))
 }
 
-class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[String]) extends Actor with
-  NovaJsonSupport with ActorLogging {
+class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[String], runNumber: Int,
+                             scenarioId: Int, influx: ActorRef, countdownLatch: ActorRef)
+  extends Actor with NovaJsonSupport with ActorLogging {
   var access = None: Option[Access]
   var auth = None: Option[ActorRef]
   var currentStep = None: Option[Int]
@@ -161,6 +163,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   }
 
   def processNextStep = {
+    Thread.sleep(4000)
     if (currentStep.isEmpty)
       currentStep = Some(0)
     else
@@ -304,12 +307,16 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   }
 
   def pingStart = {
-    ping = Some(context.actorOf(PingActor.props(floatingIP.get)))
+    ping = Some(context.actorOf(PingActor.props(instanceName, floatingIP.get, runNumber, scenarioId, influx)))
     ping.get ! "start"
   }
 
   def pingStop = {
     ping.get ! "stop"
+  }
+
+  def syncExecution = {
+    countdownLatch ! self
   }
 
   def receive = {
@@ -329,6 +336,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     case "start_ping" => pingStart
     case "stop_ping" => pingStop
     case "details" => details
+    case "sync_execution" => syncExecution
     case response: CreateServerResponseWrapper => handleCreatedServer(response.server)
     case response: FloatingIPResponse => handleCreatedFloatingIP(response.floating_ip)
     case response: DetailServerResponse => verifyStatus(response)
