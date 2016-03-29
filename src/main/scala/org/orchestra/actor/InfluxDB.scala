@@ -32,7 +32,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
         ~> unmarshal[HttpResponse]
       )
     val response: Future[HttpResponse] = pipeline(Post(endpoint +"/write?db="+ database, message))
-    response
+    response.pipeTo(self)
   }
 
   def handleResponse(response: HttpResponse) = {
