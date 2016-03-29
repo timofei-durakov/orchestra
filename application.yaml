@@ -12,6 +12,7 @@
   run_number: 1
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
+    database: "openstack"
   scenarios:
      simple:
        id: 1

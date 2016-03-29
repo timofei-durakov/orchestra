@@ -26,6 +26,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   import context.dispatcher
 
   def sendData(message:String) = {
+    context.system.log.info("ping message {}  is about to be send to influx", message )
     val pipeline: HttpRequest => Future[HttpResponse] = (
         sendReceive
         ~> unmarshal[HttpResponse]
@@ -35,12 +36,13 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   }
 
   def handleResponse(response: HttpResponse) = {
-    //TODO: deal with responses
+    context.system.log.info("http response received from influxdb code={}", response.status.intValue)
   }
 
   def receive = {
     case message: String => sendData(message)
     case response: HttpResponse => handleResponse(response)
+    case _: Any => context.system.log.info(_)
   }
 
 }

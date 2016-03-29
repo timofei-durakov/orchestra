@@ -18,12 +18,15 @@ class CountdownLatch(amount: Int) extends Actor {
 
   def receive = {
     case x: ActorRef => {
+      context.system.log.info("event received from {}", x.toString())
       reported += x
       if (reported.length == amount) {
+        context.system.log.info("all events received")
         reported.foreach((a: ActorRef) => a ! "processNextStep")
         reported.clear()
       }
     }
+    case _: Any => context.system.log.info(_)
   }
 
 }

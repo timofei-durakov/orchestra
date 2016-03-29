@@ -19,6 +19,7 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
   var instance_reachable = false
 
   def pingStart = {
+    context.system.log.info("ping start for server={} triggered", vmName)
     val command = "ping -i 0.2 -D %s".format(address)
     val pio = new ProcessIO(_ => (),
       stdout => scala.io.Source.fromInputStream(stdout)
@@ -29,10 +30,13 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
   }
 
   def pingStop = {
+    context.system.log.info("ping process termination for server={} with pid={} triggered", vmName,
+      processRef.get.toString)
     processRef.get.destroy()
   }
 
   def handlePingMessage(message: String) = {
+    context.system.log.info("ping message='{}' for server={} received", message, vmName)
     val pattern = "\\[(.*?)\\]".r
     val timestamp = pattern.findFirstIn(message)
     var time = "0"
@@ -58,6 +62,7 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
   def receive = {
     case "start" => pingStart
     case "stop" => pingStop
+    case _: Any => context.system.log.info(_)
   }
 
 }
