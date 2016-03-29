@@ -46,14 +46,14 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
       if (!message.endsWith("Unreachable")) {
         val timeStart = message.lastIndexOf("=")
         val timeEnd = message.lastIndexOf(" ")
-        time = message.substring(timeStart + 1, timeEnd - 1)
+        time = message.substring(timeStart + 1, timeEnd)
         if (!instance_reachable) {
           instance_reachable = true
           context.parent ! "processNextStep"
         }
       }
       val writeData = "pings,vm_name=" + vmName + ",address=" + address + ",run_number=" + runNumber +
-        " time=" + time + " " + timestamp.get.substring(0, timestamp.get.indexOf("."))
+        " time=" + time + " " + ts.substring(0, ts.indexOf("."))
       influx ! writeData
     }
 
