@@ -1,8 +1,10 @@
 package org.orchestra.actor
 
 import akka.actor.{ActorRef, Actor, Props}
-import org.orchestra.actor.Reaper.WatchMe
+import org.orchestra.actor.Reaper.{WatchClient, WatchСonductor, WatchMe}
 import org.orchestra.config.{Backend, Scenario, VmTemplate, Cloud}
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by tdurakov on 29.03.16.
@@ -16,29 +18,87 @@ object ScenarioMonitor {
 class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, backend: Backend, scenario: Scenario) extends Actor {
 
   import context.system
+
   var influx: ActorRef = null
   var reaper: ActorRef = null
   var countdownLatch: ActorRef = null
+  var telegraph: ActorRef = null
+  var current_sync_event = 0
+  var current_finish_event = 0
+  var finished = false
+  val conductors = ArrayBuffer.empty[ActorRef]
 
 
   def start_conductors = {
-    influx = system.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
     reaper = system.actorOf(Reaper.props, name = "reaper")
+    influx = system.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
+    reaper ! WatchClient(influx)
     countdownLatch = system.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
-
+    telegraph = system.actorOf(TelegraphActor.props(runNumber, scenario.id), name = "telegraph")
+    reaper ! WatchClient(telegraph)
     var idGenerator: Int = 0
     for (i <- 1 to scenario.parallel) {
       val conductor = system.actorOf(InstanceConductorActor.props(idGenerator,
         cloud, vmTemplate, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
         name = "conductor" + idGenerator)
-      reaper ! WatchMe(conductor)
+      reaper ! WatchСonductor(conductor)
       conductor ! "start"
       idGenerator += 1
     }
   }
 
+  def terminate_clients = {
+     context stop influx
+     context stop telegraph
+     context stop countdownLatch
+  }
+
+  def on_sync_events = {
+    if (current_sync_event == scenario.on_sync_events.length) {
+      continueConductorExecution
+    } else {
+      self ! scenario.on_sync_events(current_sync_event)
+      current_sync_event += 1
+    }
+  }
+
+  def on_finish = {
+    if (current_finish_event == scenario.on_sync_events.length) {
+      terminate_clients
+    } else {
+      self ! scenario.on_finish(current_finish_event)
+      current_finish_event += 1
+    }
+  }
+
+  def start_telegraph = {
+    telegraph ! "start"
+
+  }
+
+  def shutdown_telegraph = {
+    telegraph ! "stop"
+  }
+
+  def on_event_result = {
+    if (finished) {
+      on_finish
+    } else {
+      continueConductorExecution
+    }
+  }
+
+
+  private def continueConductorExecution = {
+    conductors.foreach((a: ActorRef) => a ! "processNextStep")
+  }
 
   def receive = {
     case "start" => start_conductors
+    case "start_telegraph" => start_telegraph
+    case "countdown_latch_triggered" => on_sync_events
+    case "finish_event_triggered" => on_finish
+    case "resume_conductors" => continueConductorExecution
+    case "processNextEvent" => on_event_result
   }
 }

@@ -9,6 +9,7 @@ import org.orchestra.config.{VmTemplate, Cloud}
 import org.orchestra.actor.model._
 import spray.http.{HttpResponse, HttpRequest}
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 
@@ -24,9 +25,18 @@ object InfluxDB {
 class InfluxDB(endpoint: String, database: String) extends Actor{
 
   import context.dispatcher
-
+  val buffer = ArrayBuffer.empty[String]
+  val bufferCapacity = 20
   def sendData(message:String) = {
-    context.system.log.info("ping message {} is about to be send to influx", message )
+    buffer.append(message)
+    if (buffer.length >= bufferCapacity) {
+      flushBuffer
+      buffer.clear
+    }
+  }
+  def flushBuffer = {
+    val message = buffer.mkString("\n")
+    context.system.log.info("ping messages '{}' are about to be send to influx", message)
     val pipeline: HttpRequest => Future[HttpResponse] = (
         sendReceive
         ~> unmarshal[HttpResponse]
@@ -37,6 +47,12 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
 
   def handleResponse(response: HttpResponse) = {
     context.system.log.info("http response received from influxdb code={}", response.status.intValue)
+  }
+
+  override def postStop = {
+    if (!buffer.isEmpty) {
+      flushBuffer
+    }
   }
 
   def receive = {

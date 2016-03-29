@@ -2,11 +2,13 @@ package org.orchestra.actor
 
 
 import akka.actor.{Props, Actor, ActorRef, Terminated}
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.Set
 
 object Reaper {
 
-  case class WatchMe(ref: ActorRef)
+  case class WatchСonductor(ref: ActorRef)
+
+  case class WatchClient(ref: ActorRef)
 
   def props: Props = Props(new Reaper)
 }
@@ -15,21 +17,40 @@ class Reaper extends Actor {
 
   import Reaper._
 
-  val watched = ArrayBuffer.empty[ActorRef]
+  val watchedConductors = Set.empty[ActorRef]
+  val watchedClients = Set.empty[ActorRef]
 
   // Derivations need to implement this method.  It's the
   // hook that's called when everything's dead
-  def allSoulsReaped() = context.system.shutdown()
+  def allSoulsReaped() = {
+    context.parent ! "finish_event_triggered"
+  }
+
+  def allClientsReaped = {
+    context.system.shutdown()
+  }
 
   // Watch and check for termination
   def receive = {
-    case WatchMe(ref) =>
+    case WatchСonductor(ref) => {
       context.system.log.info("ref={} received", ref)
       context.watch(ref)
-      watched += ref
-    case Terminated(ref) =>
-      watched -= ref
-      if (watched.isEmpty) allSoulsReaped
+      watchedConductors += ref
+    }
+    case WatchClient(ref) => {
+      context.system.log.info("ref={} received", ref)
+      context.watch(ref)
+      watchedClients += ref
+    }
+    case Terminated(ref) => {
+      if (watchedConductors.contains(ref)) {
+        watchedConductors -= ref
+        if (watchedConductors.isEmpty) allSoulsReaped
+      } else if (watchedClients.contains(ref)) {
+        watchedClients -= ref
+        if (watchedClients.isEmpty) allClientsReaped
+      }
+    }
     case _ => context.system.log.info("unexpected message received")
   }
 }

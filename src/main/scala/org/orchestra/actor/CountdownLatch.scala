@@ -22,8 +22,7 @@ class CountdownLatch(amount: Int) extends Actor {
       reported += x
       if (reported.length == amount) {
         context.system.log.info("all events received")
-        reported.foreach((a: ActorRef) => a ! "processNextStep")
-        reported.clear()
+        context.parent ! "countdown_latch_triggered"
       }
     }
     case _ => context.system.log.info("unexpected message received")
