@@ -57,42 +57,50 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
       "user_id" -> JsString(s.user_id))
 
     def read(value: JsValue) = {
-      val map = value.asJsObject.fields
-      val diskConfig = map("OS-DCF:diskConfig").convertTo[String]
-      val availabilityZone = map("OS-EXT-AZ:availability_zone").convertTo[String]
-      val host = if (map("OS-EXT-SRV-ATTR:host").isInstanceOf[JsNull.type]) null else map("OS-EXT-SRV-ATTR:host").convertTo[String]
-      val hypervisorHostName = if (map("OS-EXT-SRV-ATTR:hypervisor_hostname").isInstanceOf[JsNull.type]) null else map("OS-EXT-SRV-ATTR:hypervisor_hostname").convertTo[String]
-      val instanceName = map("OS-EXT-SRV-ATTR:instance_name").convertTo[String]
-      val powerState = map("OS-EXT-STS:power_state").convertTo[Int]
-      val taskState = if (map("OS-EXT-STS:task_state").isInstanceOf[JsNull.type]) null else map("OS-EXT-STS:task_state").convertTo[String]
-      val vmState = map("OS-EXT-STS:vm_state").convertTo[String]
-      val launchedAt = if (map("OS-SRV-USG:launched_at").isInstanceOf[JsNull.type]) null else map("OS-SRV-USG:launched_at").convertTo[String]
-      val terminatedAt = if (map("OS-SRV-USG:terminated_at").isInstanceOf[JsNull.type]) null else map("OS-SRV-USG:terminated_at").convertTo[String]
-      val accessIPv4 = map("accessIPv4").convertTo[String]
-      val accessIPv6 = map("accessIPv6").convertTo[String]
-      val addresses = map("addresses").convertTo[Map[String, List[NetworkAddress]]]
-      val configDrive = map("config_drive").convertTo[String]
-      val created = map("created").convertTo[String]
-      val flavor = map("flavor").convertTo[Flavor]
-      val hostId = map("hostId").convertTo[String]
-      val id = map("id").convertTo[String]
-      val image = map("image").convertTo[Image]
-      val keyName = (if (map("key_name").isInstanceOf[JsNull.type]) null else map("key_name").convertTo[String])
-      val links = map("links").convertTo[List[Link]]
-      val metadata = map("metadata").convertTo[Map[String, String]]
-      val name = map("name").convertTo[String]
-      val volumesAttached = map("os-extended-volumes:volumes_attached").convertTo[List[String]]
-      val progress = map("progress").convertTo[Int]
-      val securityGroups = map("security_groups").convertTo[List[SecurityGroup]]
-      val status = map("status").convertTo[String]
-      val tenantId = map("tenant_id").convertTo[String]
-      val updated = map("updated").convertTo[String]
-      val userId = map("user_id").convertTo[String]
-      new ServerDetails(diskConfig, availabilityZone, host, hypervisorHostName, instanceName, powerState.toInt, taskState,
-        vmState, launchedAt, terminatedAt, accessIPv4, accessIPv6, addresses,
-        configDrive, created, flavor, hostId, id, image, keyName,
-        links, metadata, name, volumesAttached,
-        progress, securityGroups, status, tenantId, updated, userId)
+      try {
+        val map = value.asJsObject.fields
+        val diskConfig = map("OS-DCF:diskConfig").convertTo[String]
+        val availabilityZone = map("OS-EXT-AZ:availability_zone").convertTo[String]
+        val host = if (map("OS-EXT-SRV-ATTR:host").isInstanceOf[JsNull.type]) null else map("OS-EXT-SRV-ATTR:host").convertTo[String]
+        val hypervisorHostName = if (map("OS-EXT-SRV-ATTR:hypervisor_hostname").isInstanceOf[JsNull.type]) null else map("OS-EXT-SRV-ATTR:hypervisor_hostname").convertTo[String]
+        val instanceName = map("OS-EXT-SRV-ATTR:instance_name").convertTo[String]
+        val powerState = map("OS-EXT-STS:power_state").convertTo[Int]
+        val taskState = if (map("OS-EXT-STS:task_state").isInstanceOf[JsNull.type]) null else map("OS-EXT-STS:task_state").convertTo[String]
+        val vmState = map("OS-EXT-STS:vm_state").convertTo[String]
+        val launchedAt = if (map("OS-SRV-USG:launched_at").isInstanceOf[JsNull.type]) null else map("OS-SRV-USG:launched_at").convertTo[String]
+        val terminatedAt = if (map("OS-SRV-USG:terminated_at").isInstanceOf[JsNull.type]) null else map("OS-SRV-USG:terminated_at").convertTo[String]
+        val accessIPv4 = map("accessIPv4").convertTo[String]
+        val accessIPv6 = map("accessIPv6").convertTo[String]
+        val addresses = map("addresses").convertTo[Map[String, List[NetworkAddress]]]
+        val configDrive = map("config_drive").convertTo[String]
+        val created = map("created").convertTo[String]
+        val flavor = map("flavor").convertTo[Flavor]
+        val hostId = map("hostId").convertTo[String]
+        val id = map("id").convertTo[String]
+        val image = map("image").convertTo[Image]
+        val keyName = (if (map("key_name").isInstanceOf[JsNull.type]) null else map("key_name").convertTo[String])
+        val links = map("links").convertTo[List[Link]]
+        val metadata = map("metadata").convertTo[Map[String, String]]
+        val name = map("name").convertTo[String]
+        val volumesAttached = map("os-extended-volumes:volumes_attached").convertTo[List[String]]
+        val progress = map("progress").convertTo[Int]
+        val securityGroups = if(map.contains("security_groups")) map("security_groups").convertTo[List[SecurityGroup]] else null
+        val status = map("status").convertTo[String]
+        val tenantId = map("tenant_id").convertTo[String]
+        val updated = map("updated").convertTo[String]
+        val userId = map("user_id").convertTo[String]
+        new ServerDetails(diskConfig, availabilityZone, host, hypervisorHostName, instanceName, powerState.toInt, taskState,
+          vmState, launchedAt, terminatedAt, accessIPv4, accessIPv6, addresses,
+          configDrive, created, flavor, hostId, id, image, keyName,
+          links, metadata, name, volumesAttached,
+          progress, securityGroups, status, tenantId, updated, userId)
+      } catch {
+        case e:Throwable => {
+          println(e.getMessage)
+          null
+        }
+      }
+
     }
   }
 
