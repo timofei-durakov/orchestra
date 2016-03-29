@@ -26,7 +26,7 @@ class CountdownLatch(amount: Int) extends Actor {
         reported.clear()
       }
     }
-    case _: Any => context.system.log.info(_)
+    case _ => context.system.log.info("unexpected message received")
   }
 
 }

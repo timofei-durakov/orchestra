@@ -62,7 +62,7 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
   def receive = {
     case "start" => pingStart
     case "stop" => pingStop
-    case _: Any => context.system.log.info(_)
+    case _ => context.system.log.info("unexpected message received")
   }
 
 }

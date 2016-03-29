@@ -30,6 +30,6 @@ class Reaper extends Actor {
     case Terminated(ref) =>
       watched -= ref
       if (watched.isEmpty) allSoulsReaped
-    case _: Any => context.system.log.info(_)
+    case _ => context.system.log.info("unexpected message received")
   }
 }

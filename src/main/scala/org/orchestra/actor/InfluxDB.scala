@@ -42,7 +42,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   def receive = {
     case message: String => sendData(message)
     case response: HttpResponse => handleResponse(response)
-    case _: Any => context.system.log.info(_)
+    case _ => context.system.log.info("unexpected message received")
   }
 
 }
