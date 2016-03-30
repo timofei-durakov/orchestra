@@ -18,6 +18,7 @@
      simple:
        id: 1
        parallel: 1
+       repeat: 2
        playbook_path: "/Users/tdurakov/migration-monitor/ansible"
        hosts:
        - 172.16.166.14

@@ -18,9 +18,7 @@ object ScenarioMonitor {
     Props(new ScenarioMonitor(cloud, vmTemplate, runNumber, backend, scenario))
 }
 
-class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, backend: Backend, scenario: Scenario) extends Actor {
-
-  import context.system
+class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, var runNumber: Int, backend: Backend, scenario: Scenario) extends Actor {
 
   var influx: ActorRef = null
   var reaper: ActorRef = null
@@ -31,6 +29,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
   var finished = false
   val conductors = ArrayBuffer.empty[ActorRef]
   val vmFloatingIps = Set.empty[String]
+  var idGenerator: Int = 0
 
   def start_conductors = {
     reaper = context.actorOf(Reaper.props, name = "reaper")
@@ -39,7 +38,10 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
     countdownLatch = context.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
     telegraph = context.actorOf(TelegraphActor.props(scenario.playbook_path, runNumber, scenario.id), name = "telegraph")
     reaper ! WatchClient(telegraph)
-    var idGenerator: Int = 0
+    init_conductors
+  }
+
+  def init_conductors = {
     for (i <- 1 to scenario.parallel) {
       val conductor = context.actorOf(InstanceConductorActor.props(idGenerator,
         cloud, vmTemplate, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
@@ -49,6 +51,23 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
       conductors += conductor
       idGenerator += 1
     }
+  }
+
+  def reset_event_counters = {
+    current_sync_event = 0
+    current_finish_event = 0
+  }
+
+  def new_iteration = {
+    if (runNumber == scenario.repeat) {
+      terminate_clients
+    } else {
+      runNumber += 1
+      reset_event_counters
+      conductors.clear()
+      init_conductors
+    }
+
   }
 
   def terminate_clients = {
@@ -69,7 +88,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
   def on_finish = {
     finished = true
     if (current_finish_event == scenario.on_sync_events.length) {
-      terminate_clients
+      new_iteration
     } else {
       self ! scenario.on_finish(current_finish_event)
       current_finish_event += 1
