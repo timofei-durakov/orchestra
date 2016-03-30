@@ -22,13 +22,16 @@ object Main extends ConfigYamlProtocol {
     val data = Source.fromFile(new File(confFile)).mkString
     println(data)
     val config = data.parseYaml.convertTo[Config]
-    val system = ActorSystem("OrchestraSystem")
-    val currentScenario = config.scenarios.head._2
 
-    val scenarioMonitor = system.actorOf(ScenarioMonitor.props(config.cloud, config.vm_template, config.run_number,
-      config.backend, currentScenario), "monitor")
-    scenarioMonitor ! "start"
-    system.awaitTermination()
+    for ((name, scenario) <- config.scenarios) {
+      val system = ActorSystem("OrchestraSystem" + name)
+      system.log.info("starting scenario: {}", name)
+      val scenarioMonitor = system.actorOf(ScenarioMonitor.props(config.cloud, config.vm_template, config.run_number,
+        config.backend, scenario), "monitor")
+      scenarioMonitor ! "start"
+      system.awaitTermination()
+    }
+
     println("Orchestra system is terminated")
   }
 }
