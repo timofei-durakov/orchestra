@@ -26,7 +26,7 @@ object Main extends ConfigYamlProtocol {
     for ((name, scenario) <- config.scenarios) {
       val system = ActorSystem("OrchestraSystem" + name)
       system.log.info("starting scenario: {}", name)
-      val scenarioMonitor = system.actorOf(ScenarioMonitor.props(config.cloud, config.vm_template, config.run_number,
+      val scenarioMonitor = system.actorOf(ScenarioMonitor.props(config.cloud, config.run_number,
         config.backend, scenario), "monitor")
       scenarioMonitor ! "start"
       system.awaitTermination()

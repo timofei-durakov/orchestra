@@ -14,11 +14,11 @@ import scala.collection.mutable.ArrayBuffer
   */
 
 object ScenarioMonitor {
-  def props(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, backend: Backend, scenario: Scenario): Props =
-    Props(new ScenarioMonitor(cloud, vmTemplate, runNumber, backend, scenario))
+  def props(cloud: Cloud, runNumber: Int, backend: Backend, scenario: Scenario): Props =
+    Props(new ScenarioMonitor(cloud, runNumber, backend, scenario))
 }
 
-class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, var runNumber: Int, backend: Backend, scenario: Scenario) extends Actor {
+class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenario: Scenario) extends Actor {
 
   var influx: ActorRef = null
   var reaper: ActorRef = null
@@ -44,7 +44,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, var runNumber: Int, 
   def init_conductors = {
     for (i <- 1 to scenario.parallel) {
       val conductor = context.actorOf(InstanceConductorActor.props(idGenerator,
-        cloud, vmTemplate, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
+        cloud, scenario.vm_template, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
         name = "conductor" + idGenerator)
       reaper ! WatchСonductor(conductor)
       conductor ! "start"

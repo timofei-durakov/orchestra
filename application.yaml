@@ -4,18 +4,18 @@
     projectname: "demo"
     password: "secret"
     auth_url: "http://172.16.166.13:5000/v2.0/tokens"
-  vm_template:
-    flavorRef: "2"
-    networkRef: "69024462-61f6-4441-97b4-611b6a38290c"
-    imageRef: "431caa95-c0b1-47b2-82bd-5c5407efa909"
-    key_name: "orchestra"
-    name_template: "vm_%d"
   run_number: 1
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
     database: "openstack"
   scenarios:
      simple:
+       vm_template:
+         flavorRef: "2"
+         networkRef: "69024462-61f6-4441-97b4-611b6a38290c"
+         imageRef: "431caa95-c0b1-47b2-82bd-5c5407efa909"
+         key_name: "orchestra"
+         name_template: "vm_%d"
        id: 1
        parallel: 1
        repeat: 2
