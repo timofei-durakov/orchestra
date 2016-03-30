@@ -1,8 +1,11 @@
 package org.orchestra.actor
 
 import akka.actor.{ActorRef, Actor, Props}
-import org.orchestra.actor.Reaper.{WatchClient, WatchСonductor, WatchMe}
+import org.orchestra.actor.Reaper.{WatchClient, WatchСonductor}
+import org.orchestra.actor.model.{FloatingIPAddress, FloatingIP}
+
 import org.orchestra.config.{Backend, Scenario, VmTemplate, Cloud}
+import scala.collection.mutable.Set
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -27,18 +30,18 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
   var current_finish_event = 0
   var finished = false
   val conductors = ArrayBuffer.empty[ActorRef]
-
+  val vmFloatingIps = Set.empty[String]
 
   def start_conductors = {
-    reaper = system.actorOf(Reaper.props, name = "reaper")
-    influx = system.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
+    reaper = context.actorOf(Reaper.props, name = "reaper")
+    influx = context.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
     reaper ! WatchClient(influx)
-    countdownLatch = system.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
-    telegraph = system.actorOf(TelegraphActor.props(runNumber, scenario.id), name = "telegraph")
+    countdownLatch = context.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
+    telegraph = context.actorOf(TelegraphActor.props(scenario.playbook_path, runNumber, scenario.id), name = "telegraph")
     reaper ! WatchClient(telegraph)
     var idGenerator: Int = 0
     for (i <- 1 to scenario.parallel) {
-      val conductor = system.actorOf(InstanceConductorActor.props(idGenerator,
+      val conductor = context.actorOf(InstanceConductorActor.props(idGenerator,
         cloud, vmTemplate, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
         name = "conductor" + idGenerator)
       reaper ! WatchСonductor(conductor)
@@ -72,7 +75,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
   }
 
   def start_telegraph = {
-    telegraph ! "start"
+    telegraph ! TelegraphStart(scenario.hosts,vmFloatingIps)
 
   }
 
@@ -88,6 +91,9 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
     }
   }
 
+  def cache_instance_ip(ip: FloatingIPAddress) = {
+    vmFloatingIps.add(ip.address)
+  }
 
   private def continueConductorExecution = {
     conductors.foreach((a: ActorRef) => a ! "processNextStep")
@@ -100,5 +106,6 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
     case "finish_event_triggered" => on_finish
     case "resume_conductors" => continueConductorExecution
     case "processNextEvent" => on_event_result
+    case ip: FloatingIPAddress => cache_instance_ip(ip)
   }
 }

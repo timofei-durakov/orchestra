@@ -9,11 +9,11 @@ import scala.sys.process.Process
   */
 
 object PingActor {
-  def props(vmName: String, address: String, runNumber: Int, scenarioId: Int, influx: ActorRef): Props =
-    Props(new PingActor(vmName, address, runNumber, scenarioId, influx))
+  def props(domain_id: String, vmName: String, address: String, runNumber: Int, scenarioId: Int, influx: ActorRef): Props =
+    Props(new PingActor(domain_id, vmName, address, runNumber, scenarioId, influx))
 }
 
-class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int, influx: ActorRef) extends Actor {
+class PingActor(domain_id: String, vmName: String, address: String, runNumber: Int, scenarioId: Int, influx: ActorRef) extends Actor {
 
   var processRef = None: Option[Process]
   var instance_reachable = false
@@ -55,8 +55,8 @@ class PingActor(vmName: String, address: String, runNumber: Int, scenarioId: Int
     } else {
       ts = timestamp.get.substring(1, timestamp.get.length - 1).replace(".", "").toLong * 1000
     }
-    val writeData = "pings,vm_name=" + vmName + ",address=" + address + ",run_number=" + runNumber +
-      " value=" + time + " " + ts
+    val writeData = "pings,domain_name=" + domain_id + ",vm_name=" + vmName + ",address=" + address + ",scenario=" + scenarioId +
+      ",run=" + runNumber + " value=" + time + " " + ts
     influx ! writeData
     //    }
 

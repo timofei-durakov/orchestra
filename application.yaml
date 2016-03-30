@@ -8,15 +8,22 @@
     flavorRef: "42"
     networkRef: "69024462-61f6-4441-97b4-611b6a38290c"
     imageRef: "45ec29dc-b96a-4ebc-bd8c-b43c91781550"
+    key_name: "orchestra"
     name_template: "vm_%d"
   run_number: 1
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
     database: "openstack"
+
   scenarios:
      simple:
        id: 1
-       parallel: 2
+       parallel: 1
+       playbook_path: "/Users/tdurakov/migration-monitor/ansible"
+       hosts:
+       - 172.16.166.13
+       - 172.16.166.14
+       - 172.16.166.15
        on_finish:
        - shutdown_telegraph
        on_sync_events:

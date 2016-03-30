@@ -106,7 +106,7 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val detailServersResponseFormat = jsonFormat1(DetailServersResponse)
   implicit val networkFormat = jsonFormat1(Network)
-  implicit val createServerFormat = jsonFormat6(CreateServer)
+  implicit val createServerFormat = jsonFormat7(CreateServer)
   implicit val createServerRequestFormat = jsonFormat1(CreateServerRequest)
   implicit val createServerResponseFormat = jsonFormat5(CreateServerResponse)
   implicit val createServerResponseWrapperFormat = jsonFormat1(CreateServerResponseWrapper)
@@ -154,6 +154,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   var ping = None: Option[ActorRef]
   var endpoint = None: Option[String]
   val instanceName = vmTemplate.name_template.format(id)
+  var domain_id: String = null
 
   import context.dispatcher
 //  import context.system
@@ -191,7 +192,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     context.system.log.info("build operation started for server {}", instanceName)
     val network = List(Network(vmTemplate.networkRef))
 
-    val createServer = CreateServer(instanceName, vmTemplate.imageRef, vmTemplate.flavorRef, network)
+    val createServer = CreateServer(instanceName, vmTemplate.imageRef, vmTemplate.flavorRef, network, vmTemplate.key_name)
     val pipeline: HttpRequest => Future[CreateServerResponseWrapper] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
@@ -239,6 +240,8 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     import context.system
     system.log.info("in verifyStatus method statusToWait={} receivedStatus={} for server {}", statusToWait.get,
       status.server.status, instanceName)
+    if (domain_id == null)
+      domain_id = status.server.`OS-EXT-SRV-ATTR:instance_name`
     if (status.server.status == statusToWait.get) {
       statusToWait = None
       self ! "processNextStep"
@@ -305,6 +308,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
       addFloatingIpRequest))
     requestedOperation = Some("associate_floating_ip")
     response.pipeTo(self)
+    context.parent ! floatingIpAdress
   }
 
   def list = {
@@ -332,7 +336,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
 
   def pingStart = {
     context.system.log.info("ping for server {} is triggered", instanceName)
-    ping = Some(context.actorOf(PingActor.props(instanceName, floatingIP.get, runNumber, scenarioId, influx)))
+    ping = Some(context.actorOf(PingActor.props(domain_id, instanceName, floatingIP.get, runNumber, scenarioId, influx)))
     ping.get ! "start"
   }
 
