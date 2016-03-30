@@ -1,8 +1,8 @@
 set -x
-lm_run=$1
-lm_scenario=$2
-playbook_path=$3
-inventory=$4
+playbook_path=$1
+inventory=$2
+lm_run=$3
+lm_scenario=$4
 
 export ANSIBLE_HOST_KEY_CHECKING=False
 

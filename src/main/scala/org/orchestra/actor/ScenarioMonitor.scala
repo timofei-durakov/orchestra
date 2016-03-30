@@ -36,7 +36,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     influx = context.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
     reaper ! WatchClient(influx)
     countdownLatch = context.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
-    telegraph = context.actorOf(TelegraphActor.props(scenario.playbook_path, runNumber, scenario.id), name = "telegraph")
+    telegraph = context.actorOf(AnsibleActor.props(scenario.playbook_path), name = "ansible")
     reaper ! WatchClient(telegraph)
     init_conductors
   }
@@ -97,12 +97,19 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def start_telegraph = {
-    telegraph ! TelegraphStart(scenario.hosts,vmFloatingIps)
+    telegraph ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./start_telegraph.sh",
+      List(runNumber.toString, scenario.id.toString))
 
   }
 
   def shutdown_telegraph = {
-    telegraph ! "stop"
+    telegraph ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./stop_telegraph.sh",
+      List.empty[String])
+  }
+
+  def load_test = {
+    telegraph ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./load_test.sh",
+      List.empty[String])
   }
 
   def on_event_result = {
@@ -130,5 +137,6 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     case "resume_conductors" => continueConductorExecution
     case "processNextEvent" => on_event_result
     case ip: FloatingIPAddress => cache_instance_ip(ip)
+    case _ => context.system.log.info("unexpected message received")
   }
 }
