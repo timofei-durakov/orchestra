@@ -23,10 +23,11 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   var influx: ActorRef = null
   var reaper: ActorRef = null
   var countdownLatch: ActorRef = null
-  var telegraph: ActorRef = null
+  var ansible: ActorRef = null
   var current_sync_event = 0
   var current_finish_event = 0
   var finished = false
+  var started = false
   val conductors = ArrayBuffer.empty[ActorRef]
   val vmFloatingIps = Set.empty[String]
   var idGenerator: Int = 0
@@ -36,12 +37,19 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     influx = context.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
     reaper ! WatchClient(influx)
     countdownLatch = context.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
-    telegraph = context.actorOf(AnsibleActor.props(scenario.playbook_path), name = "ansible")
-    reaper ! WatchClient(telegraph)
-    init_conductors
+    ansible = context.actorOf(AnsibleActor.props(scenario.playbook_path), name = "ansible")
+    reaper ! WatchClient(ansible)
+    configure_env
+  }
+
+  def configure_env = {
+    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./configure_nova.sh",
+      List(scenario.pre_config.nova_compress.toString, scenario.pre_config.nova_autoconverge.toString,
+        scenario.pre_config.nova_concurrent_migrations.toString))
   }
 
   def init_conductors = {
+    started = true
     for (i <- 1 to scenario.parallel) {
       val conductor = context.actorOf(InstanceConductorActor.props(idGenerator,
         cloud, scenario.vm_template, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
@@ -73,7 +81,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
 
   def terminate_clients = {
      context stop influx
-     context stop telegraph
+     context stop ansible
      context stop countdownLatch
   }
 
@@ -97,23 +105,25 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def start_telegraph = {
-    telegraph ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./start_telegraph.sh",
+    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./start_telegraph.sh",
       List(runNumber.toString, scenario.id.toString))
 
   }
 
   def shutdown_telegraph = {
-    telegraph ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./stop_telegraph.sh",
+    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./stop_telegraph.sh",
       List.empty[String])
   }
 
   def load_test = {
-    telegraph ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./load_test.sh",
+    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./load_test.sh",
       List.empty[String])
   }
 
   def on_event_result = {
-    if (finished) {
+    if (!started) {
+      init_conductors
+    } else if (finished) {
       on_finish
     } else {
       continueConductorExecution

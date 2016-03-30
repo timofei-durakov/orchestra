@@ -25,10 +25,15 @@ class AnsibleActor(playbook_path: String) extends Actor {
   private def populateHosts(command: AnsibleCommand): Unit = {
     import java.io._
     val pw = new PrintWriter(hosts)
-    pw.write("[hard]\n")
-    command.hostIps.foreach((h: String) => pw.write(h + "\n"))
-    pw.write("[virtual]\n")
-    command.vmIps.foreach((h: String) => pw.write(h + "\n"))
+    if (!command.hostIps.isEmpty){
+      pw.write("[hard]\n")
+      command.hostIps.foreach((h: String) => pw.write(h + "\n"))
+    }
+    if (!command.vmIps.isEmpty) {
+      pw.write("[virtual]\n")
+      command.vmIps.foreach((h: String) => pw.write(h + "\n"))
+    }
+
     pw.close
   }
 
