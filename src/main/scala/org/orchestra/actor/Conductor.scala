@@ -106,7 +106,7 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val detailServersResponseFormat = jsonFormat1(DetailServersResponse)
   implicit val networkFormat = jsonFormat1(Network)
-  implicit val createServerFormat = jsonFormat7(CreateServer)
+  implicit val createServerFormat = jsonFormat8(CreateServer)
   implicit val createServerRequestFormat = jsonFormat1(CreateServerRequest)
   implicit val createServerResponseFormat = jsonFormat5(CreateServerResponse)
   implicit val createServerResponseWrapperFormat = jsonFormat1(CreateServerResponseWrapper)
@@ -191,8 +191,8 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   def build = {
     context.system.log.info("build operation started for server {}", instanceName)
     val network = List(Network(vmTemplate.networkRef))
-
-    val createServer = CreateServer(instanceName, vmTemplate.imageRef, vmTemplate.flavorRef, network, vmTemplate.key_name)
+    val az = vmTemplate.az.getOrElse(null)
+    val createServer = CreateServer(instanceName, vmTemplate.imageRef, az, vmTemplate.flavorRef, network, vmTemplate.key_name)
     val pipeline: HttpRequest => Future[CreateServerResponseWrapper] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
