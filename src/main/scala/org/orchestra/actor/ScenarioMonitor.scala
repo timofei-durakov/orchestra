@@ -67,6 +67,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
   }
 
   def on_finish = {
+    finished = true
     if (current_finish_event == scenario.on_sync_events.length) {
       terminate_clients
     } else {
@@ -103,6 +104,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
   def receive = {
     case "start" => start_conductors
     case "start_telegraph" => start_telegraph
+    case "shutdown_telegraph" => shutdown_telegraph
     case "countdown_latch_triggered" => on_sync_events
     case "finish_event_triggered" => on_finish
     case "resume_conductors" => continueConductorExecution

@@ -336,7 +336,8 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
 
   def pingStart = {
     context.system.log.info("ping for server {} is triggered", instanceName)
-    ping = Some(context.actorOf(PingActor.props(domain_id, instanceName, floatingIP.get, runNumber, scenarioId, influx)))
+    ping = Some(context.actorOf(PingActor.props(domain_id, instanceName, floatingIP.get, runNumber, scenarioId, influx),
+      "ping"))
     ping.get ! "start"
   }
 

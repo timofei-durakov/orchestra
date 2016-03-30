@@ -20,7 +20,6 @@
        parallel: 1
        playbook_path: "/Users/tdurakov/migration-monitor/ansible"
        hosts:
-       - 172.16.166.13
        - 172.16.166.14
        - 172.16.166.15
        on_finish:
