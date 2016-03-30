@@ -36,7 +36,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   }
   def flushBuffer = {
     val message = buffer.mkString("\n")
-    context.system.log.info("ping messages '{}' are about to be send to influx", message)
+    context.system.log.debug("ping messages '{}' are about to be send to influx", message)
     val pipeline: HttpRequest => Future[HttpResponse] = (
         sendReceive
         ~> unmarshal[HttpResponse]
@@ -46,7 +46,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   }
 
   def handleResponse(response: HttpResponse) = {
-    context.system.log.info("http response received from influxdb code={}", response.status.intValue)
+    context.system.log.debug("http response received from influxdb code={}", response.status.intValue)
   }
 
   override def postStop = {

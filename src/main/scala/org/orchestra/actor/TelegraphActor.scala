@@ -35,10 +35,8 @@ class TelegraphActor(playbook_path: String, runNumber: Int, scenarioId: Int) ext
 
   def execute_start(request: TelegraphStart) = {
     new File(".").getAbsolutePath()
-
     populateHosts(request)
-    val command = "ansible-playbook " + playbook_path + "/start.yml -i " + hosts.getCanonicalPath + " --extra-vars '{\"lm_run\":\"" + runNumber +
-      "\",\"lm_scenario\":\"" + scenarioId + "\"}'"
+    val command = "./start_telegraph.sh " + runNumber + " " + scenarioId + " " + playbook_path + " " + hosts.getCanonicalPath
     context.system.log.info("command to be executed {}", command)
     val process = Process(command)
     processRef = process.run()
@@ -49,7 +47,7 @@ class TelegraphActor(playbook_path: String, runNumber: Int, scenarioId: Int) ext
 
 
   def execute_stop = {
-    val command = "ansible-playbook " + playbook_path + "/stop.yml -i " + hosts.getCanonicalPath
+    val command = "./stop_telegraph.sh " + playbook_path + " " + hosts.getCanonicalPath
     context.system.log.info("command to be executed {}", command)
     val process = Process(command)
     processRef = process.run()

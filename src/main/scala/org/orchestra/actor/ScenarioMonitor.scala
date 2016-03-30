@@ -46,6 +46,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, runNumber: Int, back
         name = "conductor" + idGenerator)
       reaper ! WatchСonductor(conductor)
       conductor ! "start"
+      conductors += conductor
       idGenerator += 1
     }
   }

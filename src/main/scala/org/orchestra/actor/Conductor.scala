@@ -227,7 +227,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
 
   def waitForActive = {
     import context.system
-    system.log.info("wait for active while current task status is {} for server {}", statusToWait.getOrElse("None"),
+    system.log.debug("wait for active while current task status is {} for server {}", statusToWait.getOrElse("None"),
       instanceName)
     if (statusToWait.isEmpty) {
       statusToWait = Some("ACTIVE")
@@ -238,7 +238,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
 
   def verifyStatus(status: DetailServerResponse) = {
     import context.system
-    system.log.info("in verifyStatus method statusToWait={} receivedStatus={} for server {}", statusToWait.get,
+    system.log.debug("in verifyStatus method statusToWait={} receivedStatus={} for server {}", statusToWait.get,
       status.server.status, instanceName)
     if (domain_id == null)
       domain_id = status.server.`OS-EXT-SRV-ATTR:instance_name`
@@ -251,7 +251,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   }
 
   private def getDetails = {
-    context.system.log.info("server details request is about to start for server {}", instanceName)
+    context.system.log.debug("server details request is about to start for server {}", instanceName)
     val pipeline: HttpRequest => Future[DetailServerResponse] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
