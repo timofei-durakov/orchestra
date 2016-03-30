@@ -22,6 +22,7 @@ class CountdownLatch(amount: Int) extends Actor {
       reported += x
       if (reported.length == amount) {
         context.system.log.info("all events received")
+        reported.clear
         context.parent ! "countdown_latch_triggered"
       }
     }

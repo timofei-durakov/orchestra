@@ -191,8 +191,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   def build = {
     context.system.log.info("build operation started for server {}", instanceName)
     val network = List(Network(vmTemplate.networkRef))
-    val az = vmTemplate.az.getOrElse(null)
-    val createServer = CreateServer(instanceName, vmTemplate.imageRef, az, vmTemplate.flavorRef, network, vmTemplate.key_name)
+    val createServer = CreateServer(instanceName, vmTemplate.imageRef, vmTemplate.az, vmTemplate.flavorRef, network, vmTemplate.key_name)
     val pipeline: HttpRequest => Future[CreateServerResponseWrapper] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive

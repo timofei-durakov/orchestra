@@ -56,6 +56,7 @@ class ScenarioMonitor(cloud: Cloud, vmTemplate: VmTemplate, var runNumber: Int, 
   def reset_event_counters = {
     current_sync_event = 0
     current_finish_event = 0
+    vmFloatingIps.clear
   }
 
   def new_iteration = {

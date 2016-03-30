@@ -23,7 +23,6 @@ object Main extends ConfigYamlProtocol {
     println(data)
     val config = data.parseYaml.convertTo[Config]
     val system = ActorSystem("OrchestraSystem")
-
     val currentScenario = config.scenarios.head._2
 
     val scenarioMonitor = system.actorOf(ScenarioMonitor.props(config.cloud, config.vm_template, config.run_number,
