@@ -26,7 +26,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   var ansible: ActorRef = null
   var current_sync_event = 0
   var current_finish_event = 0
-  var finished = false
+  var iteration_finished = false
   var started = false
   val conductors = ArrayBuffer.empty[ActorRef]
   val vmFloatingIps = Set.empty[String]
@@ -65,6 +65,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     current_sync_event = 0
     current_finish_event = 0
     vmFloatingIps.clear
+    iteration_finished = false
   }
 
   def new_iteration = {
@@ -95,8 +96,8 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def on_finish = {
-    finished = true
-    if (current_finish_event == scenario.on_sync_events.length) {
+    iteration_finished = true
+    if (current_finish_event == scenario.on_finish.length) {
       new_iteration
     } else {
       self ! scenario.on_finish(current_finish_event)
@@ -116,14 +117,14 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def load_test = {
-    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./load_test.sh",
+    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./load_tool.sh",
       List.empty[String])
   }
 
   def on_event_result = {
     if (!started) {
       init_conductors
-    } else if (finished) {
+    } else if (iteration_finished) {
       on_finish
     } else {
       continueConductorExecution
@@ -146,6 +147,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     case "finish_event_triggered" => on_finish
     case "resume_conductors" => continueConductorExecution
     case "processNextEvent" => on_event_result
+    case "load_test" => load_test
     case ip: FloatingIPAddress => cache_instance_ip(ip)
     case _ => context.system.log.info("unexpected message received")
   }
