@@ -151,6 +151,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   var statusToWait = None: Option[String]
   var requestedOperation = None: Option[String]
   var floatingIP = None: Option[String]
+  var floatingIPId = None: Option[String]
   var ping = None: Option[ActorRef]
   var endpoint = None: Option[String]
   val instanceName = vmTemplate.name_template.format(id)
@@ -221,7 +222,19 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   def handleCreatedFloatingIP(response: FloatingIP) = {
     context.system.log.info("response received for floating ip creation, server {} floatingIP {}", instanceName, response.ip)
     floatingIP = Some(response.ip)
+    floatingIPId = Some(response.id)
     self ! "processNextStep"
+  }
+
+  def delete_floating_ip = {
+    context.system.log.info("floating ip creation started for server {}", instanceName)
+    val pipeline: HttpRequest => Future[FloatingIPResponse] = (
+      addHeader("X-Auth-Token", access.get.token.id)
+        ~> sendReceive
+        ~> unmarshal[FloatingIPResponse]
+      )
+    val response: Future[FloatingIPResponse] = pipeline(Delete(endpoint.get + "/os-floating-ips/" + floatingIPId.get))
+    response.pipeTo(self)
   }
 
   def waitForActive = {
@@ -361,6 +374,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     case "processNextStep" => processNextStep
     case "start" => init
     case "create_floating_ip" => create_floating_ip
+    case "delete_floating_ip" => delete_floating_ip
     case "associate_floating_ip" => associate_floating_ip
     case "live_migrate" => liveMigrate
     case "wait_for_active" => waitForActive
