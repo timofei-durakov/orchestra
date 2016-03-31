@@ -149,6 +149,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   var currentStep = None: Option[Int]
   var serverId = None: Option[String]
   var statusToWait = None: Option[String]
+  var floatingIpstatusToWait = None: Option[String]
   var requestedOperation = None: Option[String]
   var floatingIP = None: Option[String]
   var floatingIPId = None: Option[String]
@@ -249,6 +250,28 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     response.pipeTo(self)
   }
 
+
+  def waitForFloatingIpAssociated = {
+    import context.system
+    system.log.debug("wait for floating ip associated for server {}", statusToWait.getOrElse("None"),
+      instanceName)
+    if (floatingIpstatusToWait.isEmpty) {
+      floatingIpstatusToWait = Some("leased")
+    }
+    getFloatingIPDetails
+  }
+
+  def waitForFloatingIpDisAssociated = {
+    import context.system
+    system.log.debug("wait for floating ip disassociated for server {}", statusToWait.getOrElse("None"),
+      instanceName)
+    if (floatingIpstatusToWait.isEmpty) {
+      floatingIpstatusToWait = Some("released")
+    }
+    getFloatingIPDetails
+
+  }
+
   def verifyStatus(status: DetailServerResponse) = {
     import context.system
     system.log.debug("in verifyStatus method statusToWait={} receivedStatus={} for server {}", statusToWait.get,
@@ -261,6 +284,28 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     } else {
       waitForActive
     }
+  }
+
+  def verifyFloatingIpStatus(status: FloatingIP): Unit = {
+    if ((floatingIpstatusToWait.get == "leased" && !status.instance_id.isEmpty) ||
+      (floatingIpstatusToWait.get == "released" && status.instance_id.isEmpty )) {
+      floatingIpstatusToWait = None
+      self ! "processNextStep"
+    } else {
+      getFloatingIPDetails
+    }
+  }
+
+
+  private def getFloatingIPDetails = {
+    context.system.log.debug("floating ip status started for server {}", instanceName)
+    val pipeline: HttpRequest => Future[FloatingIPResponse] = (
+      addHeader("X-Auth-Token", access.get.token.id)
+        ~> sendReceive
+        ~> unmarshal[FloatingIPResponse]
+      )
+    val response: Future[FloatingIPResponse] = pipeline(Get(endpoint.get + "/os-floating-ips/" + floatingIPId.get))
+    response.pipeTo(self)
   }
 
   private def getDetails = {
@@ -365,6 +410,14 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     countdownLatch ! self
   }
 
+  def dispatch_floating_ip(floatingIP: FloatingIP) = {
+    if (scenario(currentStep.get) == "create_floating_ip") {
+      handleCreatedFloatingIP(floatingIP)
+    } else {
+      verifyFloatingIpStatus(floatingIP)
+    }
+  }
+
   def receive = {
     case x: AuthResponse => {
       access = Some(x.access)
@@ -379,13 +432,15 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     case "associate_floating_ip" => associate_floating_ip
     case "live_migrate" => liveMigrate
     case "wait_for_active" => waitForActive
+    case "wait_for_floating_ip_disassociate" => waitForFloatingIpDisAssociated
+    case "wait_for_floating_ip_associate" => waitForFloatingIpAssociated
     case "delete" => delete
     case "start_ping" => pingStart
     case "stop_ping" => pingStop
     case "details" => details
     case "sync_execution" => syncExecution
     case response: CreateServerResponseWrapper => handleCreatedServer(response.server)
-    case response: FloatingIPResponse => handleCreatedFloatingIP(response.floating_ip)
+    case response: FloatingIPResponse => dispatch_floating_ip(response.floating_ip)
     case response: DetailServerResponse => verifyStatus(response)
     case response: DetailServersResponse => handleDetailList(response)
     case result: HttpResponse => handleHttpResponse(result)
