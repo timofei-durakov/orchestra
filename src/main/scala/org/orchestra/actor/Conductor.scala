@@ -227,13 +227,14 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   }
 
   def delete_floating_ip = {
-    context.system.log.info("floating ip creation started for server {}", instanceName)
-    val pipeline: HttpRequest => Future[FloatingIPResponse] = (
+    context.system.log.info("floating ip deletion started for server {}", instanceName)
+    val pipeline: HttpRequest => Future[HttpResponse] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
-        ~> unmarshal[FloatingIPResponse]
+        ~> unmarshal[HttpResponse]
       )
-    val response: Future[FloatingIPResponse] = pipeline(Delete(endpoint.get + "/os-floating-ips/" + floatingIPId.get))
+    val response: Future[HttpResponse] = pipeline(Delete(endpoint.get + "/os-floating-ips/" + floatingIPId.get))
+    requestedOperation = Some("delete_floating_ip")
     response.pipeTo(self)
   }
 
