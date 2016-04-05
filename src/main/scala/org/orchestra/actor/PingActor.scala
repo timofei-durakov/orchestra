@@ -37,6 +37,7 @@ class PingActor(domain_id: String, vmName: String, address: String, runNumber: I
 
   def handlePingMessage(message: String) = {
     context.system.log.debug("ping message='{}' for server={} received", message, vmName)
+//    context.system.log.info(message)
     var time = "0"
     if (message.endsWith("ms")) {
       if (!instance_reachable) {

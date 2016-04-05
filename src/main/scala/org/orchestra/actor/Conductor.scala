@@ -4,8 +4,7 @@ import akka.actor._
 import akka.pattern.pipe
 import spray.client.pipelining._
 
-import org.orchestra.config.{VmTemplate, Cloud}
-
+import org.orchestra.config._
 import org.orchestra.actor.model._
 import spray.http.{HttpResponse, HttpRequest}
 import spray.httpx.SprayJsonSupport
@@ -190,10 +189,10 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
 
   }
 
-  def build = {
+  def build(x: Build) = {
     context.system.log.info("build operation started for server {}", instanceName)
     val network = List(Network(vmTemplate.networkRef))
-    val createServer = CreateServer(instanceName, vmTemplate.imageRef, vmTemplate.az, vmTemplate.flavorRef, network, vmTemplate.key_name)
+    val createServer = CreateServer(instanceName, vmTemplate.imageRef, x.availability_zone, vmTemplate.flavorRef, network, vmTemplate.key_name)
     val pipeline: HttpRequest => Future[CreateServerResponseWrapper] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
@@ -239,12 +238,12 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     response.pipeTo(self)
   }
 
-  def waitForActive = {
+  def waitFor(x:WaitFor) = {
     import context.system
     system.log.debug("wait for active while current task status is {} for server {}", statusToWait.getOrElse("None"),
       instanceName)
     if (statusToWait.isEmpty) {
-      statusToWait = Some("ACTIVE")
+      statusToWait = Some(x.state)
     }
     val response = getDetails
     response.pipeTo(self)
@@ -282,7 +281,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
       statusToWait = None
       self ! "processNextStep"
     } else {
-      waitForActive
+      waitFor(WaitFor("ACTIVE"))
     }
   }
 
@@ -392,7 +391,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     }
   }
 
-  def pingStart = {
+  def pingStart(x:StartPing) = {
     context.system.log.info("ping for server {} is triggered", instanceName)
     ping = Some(context.actorOf(PingActor.props(domain_id, instanceName, floatingIP.get, runNumber, scenarioId, influx),
       "ping"))
@@ -418,32 +417,42 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     }
   }
 
+  def handleFailure(result: Status.Failure) = {
+    if ((scenario(currentStep.get) == "wait_for_floating_ip_disassociate") ||
+      (scenario(currentStep.get) == "wait_for_floating_ip_associate")) {
+      context.system.log.info("failed to receive floating ip info")
+      Thread.sleep(1000)
+      getFloatingIPDetails
+    }
+  }
+
   def receive = {
     case x: AuthResponse => {
       access = Some(x.access)
       initComputeEndpoint
       processNextStep
     }
-    case "build" => build
+    case x:Build => build(x)
     case "processNextStep" => processNextStep
     case "start" => init
-    case "create_floating_ip" => create_floating_ip
-    case "delete_floating_ip" => delete_floating_ip
-    case "associate_floating_ip" => associate_floating_ip
-    case "live_migrate" => liveMigrate
-    case "wait_for_active" => waitForActive
-    case "wait_for_floating_ip_disassociate" => waitForFloatingIpDisAssociated
-    case "wait_for_floating_ip_associate" => waitForFloatingIpAssociated
-    case "delete" => delete
-    case "start_ping" => pingStart
-    case "stop_ping" => pingStop
+    case x:CreateFloatingIp => create_floating_ip
+    case x:DeleteFloatingIp => delete_floating_ip
+    case x:AssociateFloatingIp => associate_floating_ip
+    case x:LiveMigrate => liveMigrate
+    case x:WaitFor => waitFor(x)
+    case x:WaitForFloatingIpDisassociate => waitForFloatingIpDisAssociated
+    case x:WaitForFloatingIpAssociate => waitForFloatingIpAssociated
+    case x:DeleteInstance => delete
+    case x:StartPing => pingStart(x)
+    case x:StopPing => pingStop
     case "details" => details
-    case "sync_execution" => syncExecution
+    case x:SyncExecution => syncExecution
     case response: CreateServerResponseWrapper => handleCreatedServer(response.server)
     case response: FloatingIPResponse => dispatch_floating_ip(response.floating_ip)
     case response: DetailServerResponse => verifyStatus(response)
     case response: DetailServersResponse => handleDetailList(response)
     case result: HttpResponse => handleHttpResponse(result)
+    case result: Status.Failure => handleFailure(result)
     case _ => context.system.log.info("unexpected message received")
   }
 }
