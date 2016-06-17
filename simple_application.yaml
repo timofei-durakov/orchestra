@@ -3,7 +3,7 @@
     username: "admin"
     projectname: "demo"
     password: "secret"
-    auth_url: "http://172.16.166.13:5000/v2.0/tokens"
+    auth_url: "http://172.16.166.12:5000/v2.0/tokens"
   run_number: 1
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
@@ -12,8 +12,8 @@
      simple:
        vm_template:
          flavorRef: "2"
-         networkRef: "69024462-61f6-4441-97b4-611b6a38290c"
-         imageRef: "431caa95-c0b1-47b2-82bd-5c5407efa909"
+         networkRef: "c2b1c65d-3333-43cf-b678-23224fe59fcb"
+         imageRef: "2044ba6d-f636-4d1d-bc23-2162d7c76b9c"
          key_name: "orchestra"
          name_template: "vm_%d"
        pre_config:
@@ -25,8 +25,8 @@
        repeat: 10
        playbook_path: "/Users/tdurakov/migration-monitor/ansible"
        hosts:
-       - 172.16.166.14
-       - 172.16.166.15
+       - 172.16.166.10
+       - 1172.16.166.11
        on_finish:
        - shutdown_telegraph
        on_sync_events:

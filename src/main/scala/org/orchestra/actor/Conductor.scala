@@ -135,12 +135,12 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 }
 
 object InstanceConductorActor {
-  def props(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[String],
+  def props(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[Step],
             runNumber: Int, scenarioId: Int, influx:ActorRef, countdownLath: ActorRef): Props = Props(
     new InstanceConductorActor(id, cloud, vmTemplate, scenario, runNumber, scenarioId, influx, countdownLath))
 }
 
-class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[String], runNumber: Int,
+class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[Step], runNumber: Int,
                              scenarioId: Int, influx: ActorRef, countdownLatch: ActorRef)
   extends Actor with NovaJsonSupport with ActorLogging {
   var access = None: Option[Access]
@@ -410,20 +410,23 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   }
 
   def dispatch_floating_ip(floatingIP: FloatingIP) = {
-    if (scenario(currentStep.get) == "create_floating_ip") {
-      handleCreatedFloatingIP(floatingIP)
-    } else {
-      verifyFloatingIpStatus(floatingIP)
+    scenario(currentStep.get) match {
+      case x: CreateFloatingIp => handleCreatedFloatingIP(floatingIP)
+      case _ => verifyFloatingIpStatus(floatingIP)
     }
   }
 
   def handleFailure(result: Status.Failure) = {
-    if ((scenario(currentStep.get) == "wait_for_floating_ip_disassociate") ||
-      (scenario(currentStep.get) == "wait_for_floating_ip_associate")) {
-      context.system.log.info("failed to receive floating ip info")
-      Thread.sleep(1000)
-      getFloatingIPDetails
-    }
+    scenario(currentStep.get) match {
+        case x:WaitForFloatingIpDisassociate  => getFloatingIPDetailsDeferred
+        case x:WaitForFloatingIpAssociate  => getFloatingIPDetailsDeferred
+      }
+  }
+
+  def getFloatingIPDetailsDeferred = {
+    context.system.log.info("failed to receive floating ip info")
+    Thread.sleep(1000)
+    getFloatingIPDetails
   }
 
   def receive = {

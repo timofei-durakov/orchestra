@@ -30,7 +30,8 @@ trait ConfigYamlProtocol extends DefaultYamlProtocol {
         case _ => throw new IllegalArgumentException("Unexpected type for step received")
 
       }
-      Scenario(vmTemplate, preConfig, id, parallel, repeat, playbook_path, hosts, on_finish, on_sync_events, null)
+      Scenario(vmTemplate, preConfig, id, parallel, repeat, playbook_path, hosts, on_finish, on_sync_events,
+        stepList.toList)
     }
 
     def parseYamlObjectAsStep(yamlObject: YamlObject): Step = {
@@ -82,8 +83,9 @@ trait ConfigYamlProtocol extends DefaultYamlProtocol {
         YamlString("playbook_path") -> YamlString(obj.playbook_path),
         YamlString("hosts") -> obj.hosts.toYaml,
         YamlString("on_finish") -> obj.on_finish.toYaml,
-        YamlString("on_sync_events") -> obj.on_sync_events.toYaml,
-        YamlString("steps") -> obj.steps.toYaml)
+        YamlString("on_sync_events") -> obj.on_sync_events.toYaml
+        //TODO(tdurakov): dump steps too
+        )
     }
   }
   implicit val configFormat = yamlFormat4(Config)
@@ -95,7 +97,7 @@ final case class VmTemplate(flavorRef: String, networkRef: String, imageRef: Str
 
 final case class EnvConfig(nova_compress: Boolean = false, nova_autoconverge: Boolean = false, nova_concurrent_migrations: Int = 1)
 
-final case class Scenario(vm_template: VmTemplate, pre_config: EnvConfig, id: Int, parallel: Int, repeat: Int, playbook_path: String, hosts: List[String], on_finish: List[String], on_sync_events: List[String], steps: List[String])
+final case class Scenario(vm_template: VmTemplate, pre_config: EnvConfig, id: Int, parallel: Int, repeat: Int, playbook_path: String, hosts: List[String], on_finish: List[String], on_sync_events: List[String], steps: List[Step])
 
 final case class Backend(influx_host: String, database: String)
 
