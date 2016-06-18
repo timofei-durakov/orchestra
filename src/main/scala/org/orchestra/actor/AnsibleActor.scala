@@ -57,7 +57,6 @@ class AnsibleActor(playbook_path: String) extends Actor {
 
   def receive = {
     case x: AnsibleCommand => execute_command(x)
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
-
 }

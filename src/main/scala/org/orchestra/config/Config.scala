@@ -7,15 +7,18 @@ import net.jcazevedo.moultingyaml._
   */
 
 trait ConfigYamlProtocol extends DefaultYamlProtocol {
+  implicit val loadConfigFormat = yamlFormat2(LoadConfig)
   implicit val cloudFormat = yamlFormat4(Cloud)
   implicit val vmTemplateFormat = yamlFormat5(VmTemplate)
-  implicit val envConfigFormat = yamlFormat3(EnvConfig)
+  implicit val envConfigFormat = yamlFormat4(EnvConfig)
   implicit val backendFormat = yamlFormat2(Backend)
+
   implicit object scenarioFormat extends YamlFormat[Scenario] {
     override def read(yaml: YamlValue): Scenario = {
       val map = yaml.asYamlObject.fields
       val vmTemplate = map(YamlString("vm_template")).convertTo[VmTemplate]
       val preConfig = map(YamlString("pre_config")).convertTo[EnvConfig]
+      val loadConfig = map(YamlString("load_config")).convertTo[LoadConfig]
       val id = map(YamlString("id")).convertTo[Int]
       val parallel = map(YamlString("parallel")).convertTo[Int]
       val repeat = map(YamlString("repeat")).convertTo[Int]
@@ -31,7 +34,7 @@ trait ConfigYamlProtocol extends DefaultYamlProtocol {
 
       }
       Scenario(vmTemplate, preConfig, id, parallel, repeat, playbook_path, hosts, on_finish, on_sync_events,
-        stepList.toList)
+        stepList.toList, loadConfig)
     }
 
     def parseYamlObjectAsStep(yamlObject: YamlObject): Step = {
@@ -91,15 +94,16 @@ trait ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val configFormat = yamlFormat4(Config)
 }
 
-final case class Cloud(username: String, projectname: String, password: String, auth_url: String)
+final case class LoadConfig(vm_workers: Int, malloc_mem_mb: Int)
 
-final case class VmTemplate(flavorRef: String, networkRef: String, imageRef: String, key_name: String, name_template: String)
+final case class Cloud(username: String,projectname: String,password: String,auth_url: String)
 
-final case class EnvConfig(nova_compress: Boolean = false, nova_autoconverge: Boolean = false, nova_concurrent_migrations: Int = 1)
+final case class VmTemplate(az: Option[String],flavorRef: String,networkRef: String,imageRef: String,key_name: String,name_template: String)
 
-final case class Scenario(vm_template: VmTemplate, pre_config: EnvConfig, id: Int, parallel: Int, repeat: Int, playbook_path: String, hosts: List[String], on_finish: List[String], on_sync_events: List[String], steps: List[Step])
+final case class EnvConfig(nova_compress: Boolean = false,nova_autoconverge: Boolean = false,nova_concurrent_migrations: Int = 1,nova_max_downtime: Int = 100)
 
-final case class Backend(influx_host: String, database: String)
+final case class Scenario(vm_template: VmTemplate,pre_config: EnvConfig,id: Int,parallel: Int,repeat: Int,playbook_path: String,hosts: List[String],on_finish: List[String],on_sync_events: List[String],steps: List[String],load_config: LoadConfig)
 
-final case class Config(cloud: Cloud, run_number: Int, backend: Backend, scenarios: Map[String, Scenario])
+final case class Backend(influx_host: String,database: String)
 
+final case class Config(cloud: Cloud,run_number: Int,backend: Backend,scenarios: Map[String, Scenario])

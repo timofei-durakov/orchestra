@@ -456,6 +456,6 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
     case response: DetailServersResponse => handleDetailList(response)
     case result: HttpResponse => handleHttpResponse(result)
     case result: Status.Failure => handleFailure(result)
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 }

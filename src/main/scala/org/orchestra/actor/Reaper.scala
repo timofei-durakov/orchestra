@@ -51,6 +51,6 @@ class Reaper extends Actor {
         if (watchedClients.isEmpty) allClientsReaped
       }
     }
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 }

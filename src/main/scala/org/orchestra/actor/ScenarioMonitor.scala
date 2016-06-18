@@ -45,7 +45,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   def configure_env = {
     ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./configure_nova.sh",
       List(scenario.pre_config.nova_compress.toString, scenario.pre_config.nova_autoconverge.toString,
-        scenario.pre_config.nova_concurrent_migrations.toString))
+        scenario.pre_config.nova_concurrent_migrations.toString, scenario.pre_config.nova_max_downtime.toString))
   }
 
   def init_conductors = {
@@ -118,7 +118,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
 
   def load_test = {
     ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./load_tool.sh",
-      List.empty[String])
+      List(scenario.load_config.vm_workers.toString, scenario.load_config.malloc_mem_mb.toString, runNumber.toString, scenario.id.toString))
   }
 
   def on_event_result = {
@@ -149,6 +149,6 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     case "processNextEvent" => on_event_result
     case "load_test" => load_test
     case ip: FloatingIPAddress => cache_instance_ip(ip)
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 }
