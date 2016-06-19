@@ -1,6 +1,16 @@
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/scala-$TRAVIS_SCALA_VERSION
+
 language: scala
 scala:
    - 2.11.2
+   - 2.11.8
 
 script:
+   - sbt test:compile
    - sbt test
+   # Tricks to avoid unnecessary cache updates
+   - find $HOME/.sbt -name "*.lock" | xargs rm
+   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
