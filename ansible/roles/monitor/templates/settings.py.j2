@@ -1,0 +1,27 @@
+
+DEBUG = False
+
+PID_FILE = "{{ monitoring_pid }}"
+LOG_FILE = "/tmp/migration-monitor.log"
+
+LIBVIRT = {
+    "URI": ["qemu:///system"],
+    "POLL_FREQ": 0.5,
+}
+
+INFLUXDB = {
+    "HOST": '{{ influxdb_host }}',
+    "PORT": '{{ influxdb_port }}',
+    "USERNAME": '',
+    "PASSWORD": '',
+    "DATABASE": '{{ influxdb_database }}',
+    "EVENTS_MEASUREMENT": 'libvirt_events',
+    "JOBINFO_MEASUREMENT": 'libvirt_jobinfo',
+    "RECONNECT": 10,  # sec
+    
+    "TAGS": {
+        "scenario": "{{ lm_scenario }}",
+        "run": "{{ lm_run }}",
+        "hostname": "{{ ansible_hostname }}",
+    }
+}

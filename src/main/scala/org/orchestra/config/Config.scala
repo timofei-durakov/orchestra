@@ -9,7 +9,7 @@ import net.jcazevedo.moultingyaml._
 trait ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val loadConfigFormat = yamlFormat2(LoadConfig)
   implicit val cloudFormat = yamlFormat4(Cloud)
-  implicit val vmTemplateFormat = yamlFormat5(VmTemplate)
+  implicit val vmTemplateFormat = yamlFormat6(VmTemplate)
   implicit val envConfigFormat = yamlFormat4(EnvConfig)
   implicit val backendFormat = yamlFormat2(Backend)
 
@@ -94,16 +94,51 @@ trait ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val configFormat = yamlFormat4(Config)
 }
 
-final case class LoadConfig(vm_workers: Int, malloc_mem_mb: Int)
+final case class LoadConfig(
+  vm_workers: Int,
+  malloc_mem_mb: Int)
 
-final case class Cloud(username: String,projectname: String,password: String,auth_url: String)
+final case class Cloud(
+  username: String,
+  projectname: String,
+  password: String,
+  auth_url: String)
 
-final case class VmTemplate(az: Option[String],flavorRef: String,networkRef: String,imageRef: String,key_name: String,name_template: String)
+final case class VmTemplate(
+  az: Option[String],
+  flavorRef: String,
+  networkRef: String,
+  imageRef: String,
+  key_name: String,
+  name_template: String)
 
-final case class EnvConfig(nova_compress: Boolean = false,nova_autoconverge: Boolean = false,nova_concurrent_migrations: Int = 1,nova_max_downtime: Int = 100)
+final case class EnvConfig(
+  nova_compress: Boolean = false,
+  nova_autoconverge: Boolean = false,
+  nova_concurrent_migrations: Int = 1,
+  nova_max_downtime: Int = 100)
 
-final case class Scenario(vm_template: VmTemplate,pre_config: EnvConfig,id: Int,parallel: Int,repeat: Int,playbook_path: String,hosts: List[String],on_finish: List[String],on_sync_events: List[String],steps: List[String],load_config: LoadConfig)
+final case class Scenario(
+  vm_template: VmTemplate,
+  pre_config: EnvConfig,
+  id: Int,
+  parallel: Int,
+  repeat: Int,
+  playbook_path: String,
+  hosts: List[String],
+  on_finish: List[String],
+  on_sync_events: List[String],
+  steps: List[Step],
+  load_config: LoadConfig)
 
-final case class Backend(influx_host: String,database: String)
+final case class Backend(
+  influx_host: String,
+  database: String)
 
-final case class Config(cloud: Cloud,run_number: Int,backend: Backend,scenarios: Map[String, Scenario])
+final case class Config(
+  cloud: Cloud,
+  run_number: Int,
+  backend: Backend,
+  scenarios: Map[String, Scenario])
+
+

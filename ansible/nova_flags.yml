@@ -1,0 +1,45 @@
+---
+- hosts: hard
+  vars:
+    nova_conf: /etc/nova/nova.conf
+
+    nova_compress: false
+    nova_autoconverge: false
+
+    compressed_flag: ""
+    autoconverge_flag: ""
+
+    nova_default_flags: VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST
+
+    nova_concurrent_migrations: 0
+    nova_max_downtime: 500
+
+  remote_user: stack
+  become_method: sudo
+
+  tasks:
+  - set_fact: compressed_flag=",VIR_MIGRATE_COMPRESSED"
+    when: nova_compress
+
+  - set_fact: autoconverge_flag=",VIR_MIGRATE_AUTO_CONVERGE"
+    when: nova_autoconverge
+
+  - name: Backup nova.conf
+    command: "cp -f {{ nova_conf }} {{ nova_conf }}.bak"
+    become: yes
+
+  - name: Set Nova flags
+    ini_file: dest={{ nova_conf }} section='libvirt' option='live_migration_flag' value='{{ nova_default_flags }}{{ compressed_flag | default("") }}{{ autoconverge_flag | default("") }}' state='present'
+    become: yes
+
+  - name: Update max_concurrent_live_migrations
+    ini_file: dest={{ nova_conf }} section='DEFAULT' option='max_concurrent_live_migrations' value='{{ nova_concurrent_migrations }}' state='present'
+    become: yes
+
+  - name: Update live_migration_downtime
+    ini_file: dest={{ nova_conf }} section='libvirt' option='live_migration_downtime' value='{{ nova_max_downtime }}' state='present'
+    become: yes
+
+  - name: Restart n-cpu
+    shell: "screen -X at n-cpu stuff $'\\003' && screen -X at n-cpu stuff $'\\033[A\\015'"
+    become: no

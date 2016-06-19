@@ -1,0 +1,24 @@
+---
+# Vagrant debug
+#
+# - hosts: all
+#   sudo: yes
+#   vars:
+#     lm_run: 1
+#     lm_scenario: 1
+#   roles:
+#   - telegraf
+#   - monitor
+
+- hosts: hard
+  remote_user: root
+  roles:
+  - telegraf
+  - monitor
+
+- hosts: virtual
+  remote_user: ubuntu
+  sudo: yes
+  roles:
+  - dns
+  - telegraf

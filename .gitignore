@@ -4,3 +4,4 @@ project/
 hosts
 *~
 *.deb
+*.retry

@@ -1,0 +1,2 @@
+work_dir: /opt/migration-monitor
+virtualenv_name: .venv

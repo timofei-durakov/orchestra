@@ -1,0 +1,13 @@
+---
+# Vagrant debug
+#
+# - hosts: all
+#   sudo: yes
+#   roles:
+#   - stopper
+
+- hosts: virtual
+  remote_user: ubuntu
+  sudo: yes
+  roles:
+  - load_test

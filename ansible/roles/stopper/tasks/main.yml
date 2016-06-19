@@ -1,0 +1,10 @@
+- name: check if monitor is running
+  stat: path="{{ monitoring_pid }}"
+  register: st
+
+- name: Kill monitoring process
+  command: "pkill -F {{ monitoring_pid }}"
+  when: st.stat.islnk is defined
+
+- name: Stop telegraf
+  service: name=telegraf state=stopped
