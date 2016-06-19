@@ -1,14 +1,14 @@
 
 import java.io.File
-
-
-import akka.actor.{ActorSystem}
-import org.orchestra.actor._
 import scala.io.Source
+import akka.actor.{ActorSystem}
 import net.jcazevedo.moultingyaml._
-import org.orchestra.config._
 
-object Main extends ConfigYamlProtocol {
+import org.orchestra.actor._
+import org.orchestra.config._
+import org.orchestra.config.ConfigYamlProtocol._
+
+object Main {
 
   def main(args: Array[String]) {
     //TODO: change to some existing lib

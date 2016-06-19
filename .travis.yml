@@ -3,4 +3,4 @@ scala:
    - 2.11.2
 
 script:
-   - sbt compile
+   - sbt test

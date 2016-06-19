@@ -6,7 +6,7 @@ import net.jcazevedo.moultingyaml._
   * Created by tdurakov on 20.03.16.
   */
 
-trait ConfigYamlProtocol extends DefaultYamlProtocol {
+object ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val loadConfigFormat = yamlFormat2(LoadConfig)
   implicit val cloudFormat = yamlFormat4(Cloud)
   implicit val vmTemplateFormat = yamlFormat6(VmTemplate)
