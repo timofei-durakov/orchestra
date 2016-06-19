@@ -26,7 +26,7 @@
        playbook_path: "/Users/tdurakov/migration-monitor/ansible"
        hosts:
        - 172.16.166.10
-       - 1172.16.166.11
+       - 172.16.166.11
        on_finish:
        - shutdown_telegraph
        on_sync_events:

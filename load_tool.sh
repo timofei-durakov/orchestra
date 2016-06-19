@@ -4,9 +4,6 @@ inventory=$2
 vm_workers=$3
 malloc_mem_mb=$4
 
-lm_run=$5
-lm_scenario=$6
-
 
 export ANSIBLE_HOST_KEY_CHECKING=False
 

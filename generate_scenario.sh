@@ -54,14 +54,19 @@ cat <<EOF
        steps:
        - build
        - create_floating_ip
-       - wait_for_active
+       - wait_for:
+           state: "ACTIVE"
        - associate_floating_ip
-       - sync_execution
+       - wait_for_floating_ip_associate
+       - start_ping:
+           frequency: 0.2
+           sync: true
        - sync_execution
        - live_migrate
-       - wait_for_active
-       - delete
+       - wait_for:
+           state: "ACTIVE"
+       - stop_ping
+       - delete_instance
        - wait_for_floating_ip_disassociate
        - delete_floating_ip
-
 EOF
