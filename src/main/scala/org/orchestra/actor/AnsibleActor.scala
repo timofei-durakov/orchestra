@@ -3,15 +3,21 @@ package org.orchestra.actor
 import java.io.File
 
 import akka.actor.{Actor, Props}
-import scala.collection.mutable.Set
+import scala.collection._
 
+import scala.util.parsing.json.JSONObject
 
-import scala.sys.process.Process
+import java.nio.file.Paths
 
 /**
   * Created by tdurakov on 30.03.16.
   */
-case class AnsibleCommand(hostIps: List[String], vmIps: Set[String], script: String, extra_args:List[String])
+case class AnsibleCommand(
+  hostIps: List[String],
+  vmIps: mutable.Set[String],
+  playbook: String,
+  extra_args: immutable.Map[String, String])
+
 
 object AnsibleActor {
   def props(playbook_path: String): Props = Props(new AnsibleActor(playbook_path))
@@ -19,7 +25,6 @@ object AnsibleActor {
 
 class AnsibleActor(playbook_path: String) extends Actor {
 
-  var processRef: Process = null
   var hosts = new File("hosts")
 
   private def populateHosts(command: AnsibleCommand): Unit = {
@@ -38,26 +43,20 @@ class AnsibleActor(playbook_path: String) extends Actor {
   }
 
   def execute_command(ac: AnsibleCommand) = {
+    import scala.sys.process._
     populateHosts(ac)
-    val command =  ac.script +" "+ playbook_path + " " + hosts.getCanonicalPath + " " + ac.extra_args.mkString(" ")
-    context.system.log.info("command to be executed {}", command)
-    val process = Process(command)
-    processRef = process.run()
-    processRef.exitValue()
+
+    val playbook = Paths.get(playbook_path, ac.playbook).toString
+
+    val cmd = Seq("ansible-playbook", playbook, "-i", hosts.getCanonicalPath, "--extra-vars", JSONObject(ac.extra_args).toString())
+    context.system.log.info("command to be executed \"{}\"", cmd.mkString(" "))
+    cmd.!
+
     context.parent ! "processNextEvent"
-    processRef = null
-  }
-
-
-  override def postStop = {
-    if (processRef != null) {
-      processRef.destroy()
-    }
   }
 
   def receive = {
     case x: AnsibleCommand => execute_command(x)
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
-
 }

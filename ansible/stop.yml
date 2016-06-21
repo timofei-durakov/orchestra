@@ -1,0 +1,13 @@
+---
+# Vagrant debug
+#
+# - hosts: all
+#   sudo: yes
+#   roles:
+#   - stopper
+
+- hosts: hard
+  remote_user: root
+  roles:
+  - stopper
+

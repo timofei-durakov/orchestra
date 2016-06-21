@@ -1,0 +1,2 @@
+- name: add dns server to resolv.conf
+  lineinfile: dest=/etc/resolv.conf regexp='' insertafter=EOF line='nameserver 172.18.208.44'

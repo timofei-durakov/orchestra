@@ -1,0 +1,6 @@
+- name: install stress
+  apt: name=stress state=present
+- name: install daemon
+  apt: name=daemon state=present
+- name: start
+  command: daemon -- stress --vm {{ vm_workers }} --vm-bytes {{ malloc_mem_mb }}M 

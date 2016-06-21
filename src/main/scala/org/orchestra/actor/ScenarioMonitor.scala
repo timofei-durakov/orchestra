@@ -5,9 +5,8 @@ import org.orchestra.actor.Reaper.{WatchClient, WatchСonductor}
 import org.orchestra.actor.model.{FloatingIPAddress, FloatingIP}
 
 import org.orchestra.config.{Backend, Scenario, VmTemplate, Cloud}
-import scala.collection.mutable.Set
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection._
 
 /**
   * Created by tdurakov on 29.03.16.
@@ -28,8 +27,8 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   var current_finish_event = 0
   var iteration_finished = false
   var started = false
-  val conductors = ArrayBuffer.empty[ActorRef]
-  val vmFloatingIps = Set.empty[String]
+  val conductors = mutable.ArrayBuffer.empty[ActorRef]
+  val vmFloatingIps = mutable.Set.empty[String]
   var idGenerator: Int = 0
 
   def start_conductors = {
@@ -43,9 +42,14 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def configure_env = {
-    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./configure_nova.sh",
-      List(scenario.pre_config.nova_compress.toString, scenario.pre_config.nova_autoconverge.toString,
-        scenario.pre_config.nova_concurrent_migrations.toString))
+    ansible ! AnsibleCommand(
+      scenario.hosts,
+      vmFloatingIps,
+      "nova_flags.yml",
+      immutable.Map("nova_compress" -> scenario.pre_config.nova_compress.toString,
+                    "nova_autoconverge" -> scenario.pre_config.nova_autoconverge.toString,
+                    "nova_concurrent_migrations" -> scenario.pre_config.nova_concurrent_migrations.toString,
+                    "nova_max_downtime" -> scenario.pre_config.nova_max_downtime.toString))
   }
 
   def init_conductors = {
@@ -106,19 +110,29 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def start_telegraph = {
-    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./start_telegraph.sh",
-      List(runNumber.toString, scenario.id.toString))
-
+    ansible ! AnsibleCommand(
+      scenario.hosts,
+      vmFloatingIps,
+      "start.yml",
+      immutable.Map("lm_run" -> runNumber.toString,
+                    "lm_scenario" -> scenario.id.toString))
   }
 
   def shutdown_telegraph = {
-    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./stop_telegraph.sh",
-      List.empty[String])
+    ansible ! AnsibleCommand(
+      scenario.hosts,
+      vmFloatingIps,
+      "stop.yml",
+      immutable.Map.empty[String, String])
   }
 
   def load_test = {
-    ansible ! AnsibleCommand(scenario.hosts,vmFloatingIps, "./load_tool.sh",
-      List.empty[String])
+    ansible ! AnsibleCommand(
+      scenario.hosts,
+      vmFloatingIps,
+      "load.yml",
+      immutable.Map("vm_workers" -> scenario.load_config.vm_workers.toString,
+                    "malloc_mem_mb" -> scenario.load_config.malloc_mem_mb.toString))
   }
 
   def on_event_result = {
@@ -149,6 +163,6 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     case "processNextEvent" => on_event_result
     case "load_test" => load_test
     case ip: FloatingIPAddress => cache_instance_ip(ip)
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 }

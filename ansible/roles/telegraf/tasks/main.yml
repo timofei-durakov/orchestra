@@ -1,0 +1,38 @@
+---
+# tasks file for telegraf role
+#
+
+- name: check is already installed
+  stat: path=/usr/bin/telegraf
+  register: st
+
+- name: Get local dir
+  local_action: shell pwd
+  register: local_dir
+
+- name: check local package
+  local_action: command ls ./telegraf_amd64.deb
+  ignore_errors: yes
+  register: local_res
+
+- name: fetch telegraf installation package | Debian
+  get_url: url=http://get.influxdb.org/telegraf/telegraf_{{ telegraf_version }}_amd64.deb dest=/tmp/telegraf_amd64.deb mode=0440
+  when: (st.stat.islnk is not defined) and (local_res|failed)
+
+- name: copy local telegraf installation package
+  copy: src={{ local_dir.stdout }}/telegraf_amd64.deb dest=/tmp/telegraf_amd64.deb
+  when: local_res|success
+
+- name: install telegraf package | Debian
+  apt: deb=/tmp/telegraf_amd64.deb
+  when: (st.stat.islnk is not defined)
+
+- name: start telegraf service and ensure that it is enabled
+  service: name=telegraf enabled=yes state=started
+
+- set_fact: config_template="telegraf.conf.j2"
+
+- name: Generate telegraf config from template
+  template: src="{{ config_template }}" dest=/etc/telegraf/telegraf.conf
+  notify:
+    - restart telegraf
