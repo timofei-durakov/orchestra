@@ -12,7 +12,37 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val vmTemplateFormat = yamlFormat6(VmTemplate)
   implicit val envConfigFormat = yamlFormat4(EnvConfig)
   implicit val backendFormat = yamlFormat2(Backend)
+  implicit object periodicFormat extends YamlFormat[List[Periodic]] {
+    override def read(yaml: YamlValue): List[Periodic] = {
+      val periodic = yaml.asInstanceOf[YamlArray]
+      val periodicList = periodic.elements.map {
+        case y: YamlObject => parseYamlObjectAsPeriodic(y)
+        case _ => throw new IllegalArgumentException("Unexpected type for step received")
+      }
+      periodicList.toList
+    }
 
+    override def write(obj: List[Periodic]): YamlValue = {
+      YamlNull
+    }
+
+    def parseYamlObjectAsPeriodic(yamlObject: YamlObject): Periodic = {
+      val pair = yamlObject.fields.head
+      val step_name = pair._1.asInstanceOf[YamlString].value
+      val params = pair._2.asYamlObject
+      step_name match {
+        case "check_endpoints" => {
+          if (params.fields.isEmpty) {
+            CheckEndpoints(None)
+          } else {
+            println()
+            val period = params.fields(YamlString("period")).asInstanceOf[YamlNumber[Double]].value
+            CheckEndpoints(Some(period))
+          }
+        }
+      }
+    }
+  }
   implicit object scenarioFormat extends YamlFormat[Scenario] {
     override def read(yaml: YamlValue): Scenario = {
       val map = yaml.asYamlObject.fields
@@ -91,7 +121,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
         )
     }
   }
-  implicit val configFormat = yamlFormat4(Config)
+  implicit val configFormat = yamlFormat5(Config)
 }
 
 final case class LoadConfig(
@@ -139,6 +169,7 @@ final case class Config(
   cloud: Cloud,
   run_number: Int,
   backend: Backend,
+  periodic: Option[List[Periodic]],
   scenarios: Map[String, Scenario])
 
 

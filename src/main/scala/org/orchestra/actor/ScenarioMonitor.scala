@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, Actor, Props}
 import org.orchestra.actor.Reaper.{WatchClient, WatchСonductor}
 import org.orchestra.actor.model.{FloatingIPAddress, FloatingIP}
 
-import org.orchestra.config.{Backend, Scenario, VmTemplate, Cloud}
+import org.orchestra.config._
 
 import scala.collection._
 
@@ -13,12 +13,12 @@ import scala.collection._
   */
 
 object ScenarioMonitor {
-  def props(cloud: Cloud, runNumber: Int, backend: Backend, scenario: Scenario): Props =
-    Props(new ScenarioMonitor(cloud, runNumber, backend, scenario))
+  def props(cloud: Cloud, runNumber: Int, backend: Backend, scenario: Scenario, periodic: Option[List[Periodic]]): Props =
+    Props(new ScenarioMonitor(cloud, runNumber, backend, scenario, periodic))
 }
 
-class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenario: Scenario) extends Actor {
-
+class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenario: Scenario,
+                      periodic: Option[List[Periodic]]) extends Actor {
   var influx: ActorRef = null
   var reaper: ActorRef = null
   var countdownLatch: ActorRef = null
@@ -36,8 +36,21 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     influx = context.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
     reaper ! WatchClient(influx)
     countdownLatch = context.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
+    reaper ! WatchClient(countdownLatch)
     ansible = context.actorOf(AnsibleActor.props(scenario.playbook_path), name = "ansible")
     reaper ! WatchClient(ansible)
+    if (periodic.isDefined) {
+      val periodicList = periodic.get
+      val periodics = periodicList.map {
+        case x: CheckEndpoints => {
+          context.actorOf(EndpointChecker.props(influx, cloud, x.period.getOrElse(5.0)), "endpoint_checker")
+        }
+      }
+      for (p <- periodics) {
+        p ! "init"
+        reaper ! WatchClient(p)
+      }
+    }
     configure_env
   }
 

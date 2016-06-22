@@ -23,6 +23,9 @@ cat <<EOF
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
     database: "openstack"
+  periodic:
+    - check_endpoints:
+        period: 5.0
   scenarios:
      simple:
        load_config:

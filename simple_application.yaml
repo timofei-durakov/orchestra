@@ -8,8 +8,14 @@
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
     database: "openstack"
+  periodic:
+     - check_endpoints:
+         period: 5.0
   scenarios:
      simple:
+       load_config:
+         vm_workers: 1
+         malloc_mem_mb: 200
        vm_template:
          flavorRef: "2"
          networkRef: "c2b1c65d-3333-43cf-b678-23224fe59fcb"
@@ -20,6 +26,7 @@
          nova_compress: false
          nova_autoconverge: false
          nova_concurrent_migrations: 1
+         nova_max_downtime: 100
        id: 1
        parallel: 1
        repeat: 10
