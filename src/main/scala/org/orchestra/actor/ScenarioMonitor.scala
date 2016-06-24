@@ -56,7 +56,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     started = true
     for (i <- 1 to scenario.parallel) {
       val conductor = context.actorOf(InstanceConductorActor.props(idGenerator,
-        cloud, scenario.vm_template, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
+        cloud, scenario.vm_template, backend, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
         name = "conductor" + idGenerator)
       reaper ! WatchСonductor(conductor)
       conductor ! "start"

@@ -34,7 +34,7 @@ final case class DetailServerResponse(server: ServerDetails)
 final case class Network(uuid: String)
 
 final case class CreateServer(name:String, imageRef: String, availability_zone: Option[String], flavorRef: String, networks: List[Network],
-                              key_name: String, min_count: Int = 1, max_count: Int = 1)
+                              key_name: String, user_data:Option[String], min_count: Int = 1, max_count: Int = 1)
 
 final case class CreateServerRequest(server: CreateServer)
 

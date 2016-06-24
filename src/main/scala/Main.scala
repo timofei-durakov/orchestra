@@ -1,5 +1,6 @@
 
 import java.io.File
+import java.util.Base64
 import scala.io.Source
 import akka.actor.{ActorSystem}
 import net.jcazevedo.moultingyaml._

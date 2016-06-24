@@ -11,7 +11,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val cloudFormat = yamlFormat4(Cloud)
   implicit val vmTemplateFormat = yamlFormat6(VmTemplate)
   implicit val envConfigFormat = yamlFormat4(EnvConfig)
-  implicit val backendFormat = yamlFormat2(Backend)
+  implicit val backendFormat = yamlFormat4(Backend)
 
   implicit object scenarioFormat extends YamlFormat[Scenario] {
     override def read(yaml: YamlValue): Scenario = {
@@ -133,7 +133,9 @@ final case class Scenario(
 
 final case class Backend(
   influx_host: String,
-  database: String)
+  database: String,
+  callback_host: String,
+  callback_port: Int)
 
 final case class Config(
   cloud: Cloud,

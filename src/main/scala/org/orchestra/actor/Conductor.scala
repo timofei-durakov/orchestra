@@ -1,5 +1,6 @@
 package org.orchestra.actor
 
+import java.util.Base64
 import akka.actor._
 import akka.pattern.pipe
 import spray.client.pipelining._
@@ -105,7 +106,7 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val detailServersResponseFormat = jsonFormat1(DetailServersResponse)
   implicit val networkFormat = jsonFormat1(Network)
-  implicit val createServerFormat = jsonFormat8(CreateServer)
+  implicit val createServerFormat = jsonFormat9(CreateServer)
   implicit val createServerRequestFormat = jsonFormat1(CreateServerRequest)
   implicit val createServerResponseFormat = jsonFormat5(CreateServerResponse)
   implicit val createServerResponseWrapperFormat = jsonFormat1(CreateServerResponseWrapper)
@@ -135,12 +136,12 @@ trait NovaJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 }
 
 object InstanceConductorActor {
-  def props(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[Step],
+  def props(id: Int, cloud: Cloud, vmTemplate: VmTemplate, backend: Backend, scenario: List[Step],
             runNumber: Int, scenarioId: Int, influx:ActorRef, countdownLath: ActorRef): Props = Props(
-    new InstanceConductorActor(id, cloud, vmTemplate, scenario, runNumber, scenarioId, influx, countdownLath))
+    new InstanceConductorActor(id, cloud, vmTemplate, backend, scenario, runNumber, scenarioId, influx, countdownLath))
 }
 
-class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scenario: List[Step], runNumber: Int,
+class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, backend:Backend, scenario: List[Step], runNumber: Int,
                              scenarioId: Int, influx: ActorRef, countdownLatch: ActorRef)
   extends Actor with NovaJsonSupport with ActorLogging {
   var access = None: Option[Access]
@@ -192,7 +193,11 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, scen
   def build(x: Build) = {
     context.system.log.info("build operation started for server {}", instanceName)
     val network = List(Network(vmTemplate.networkRef))
-    val createServer = CreateServer(instanceName, vmTemplate.imageRef, x.availability_zone, vmTemplate.flavorRef, network, vmTemplate.key_name)
+    val user_data_string = "#!/bin/bash\n\nwget http://%s:%d/%s".format(
+      backend.callback_host, backend.callback_port, instanceName)
+    val user_data = Base64.getEncoder().encodeToString(user_data_string.getBytes("utf-8"))
+
+    val createServer = CreateServer(instanceName, vmTemplate.imageRef, x.availability_zone, vmTemplate.flavorRef, network, vmTemplate.key_name, Some(user_data))
     val pipeline: HttpRequest => Future[CreateServerResponseWrapper] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive

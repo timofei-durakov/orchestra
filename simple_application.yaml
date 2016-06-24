@@ -7,11 +7,19 @@
   run_number: 1
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
-    database: "openstack"
+    database: "huge_pages"
+    callback_host: "172.18.86.186"
+    callback_port: 9999
+  periodic:
+     - check_endpoints:
+         period: 5.0
   scenarios:
      simple:
+       load_config:
+         vm_workers: 1
+         malloc_mem_mb: 50
        vm_template:
-         flavorRef: "2"
+         flavorRef: "999"
          networkRef: "c2b1c65d-3333-43cf-b678-23224fe59fcb"
          imageRef: "2044ba6d-f636-4d1d-bc23-2162d7c76b9c"
          key_name: "orchestra"
@@ -20,10 +28,11 @@
          nova_compress: false
          nova_autoconverge: false
          nova_concurrent_migrations: 1
+         nova_max_downtime: 500
        id: 1
        parallel: 1
        repeat: 10
-       playbook_path: "/Users/tdurakov/migration-monitor/ansible"
+       playbook_path: "/home/tdurakov/migration-monitor/ansible"
        hosts:
        - 172.16.166.10
        - 172.16.166.11
@@ -31,6 +40,7 @@
        - shutdown_telegraph
        on_sync_events:
        - start_telegraph
+       - load_test
        steps:
        - build
        - create_floating_ip
@@ -41,6 +51,7 @@
        - start_ping:
            frequency: 0.2
            sync: true
+       - sync_execution
        - sync_execution
        - live_migrate
        - wait_for:
