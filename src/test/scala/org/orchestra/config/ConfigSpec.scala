@@ -18,6 +18,8 @@ class ConfigSpec extends FlatSpec with Matchers {
       |backend:
       |  influx_host: "http://monit-ent.vm.mirantis.net:8086"
       |  database: "openstack"
+      |  callback_host: "172.16.18.8"
+      |  callback_port: 9999
       |scenarios:
       |   simple:
       |     vm_template:
