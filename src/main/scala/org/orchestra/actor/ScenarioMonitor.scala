@@ -1,10 +1,12 @@
 package org.orchestra.actor
 
 import akka.actor.{ActorRef, Actor, Props}
+import akka.io.IO
 import org.orchestra.actor.Reaper.{WatchClient, WatchСonductor}
-import org.orchestra.actor.model.{FloatingIPAddress, FloatingIP}
+import org.orchestra.actor.model.{InstanceAvailableEvent, FloatingIPAddress}
 
-import org.orchestra.config.{Backend, Scenario, VmTemplate, Cloud}
+import org.orchestra.config.{Backend, Scenario, Cloud}
+import spray.can.Http
 
 import scala.collection._
 
@@ -22,17 +24,23 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   var influx: ActorRef = null
   var reaper: ActorRef = null
   var countdownLatch: ActorRef = null
+  var callback_service: ActorRef = null
+  var callback_listener: ActorRef = null
   var ansible: ActorRef = null
   var current_sync_event = 0
   var current_finish_event = 0
   var iteration_finished = false
   var started = false
-  val conductors = mutable.ArrayBuffer.empty[ActorRef]
+  val conductors = mutable.Map.empty[String, ActorRef]
   val vmFloatingIps = mutable.Set.empty[String]
   var idGenerator: Int = 0
 
   def start_conductors = {
+    implicit val system = context.system
     reaper = context.actorOf(Reaper.props, name = "reaper")
+    callback_service = context.actorOf(InstanceCallbackService.props(context.self))
+    reaper ! WatchClient(callback_service)
+    IO(Http) ! Http.Bind(callback_service, interface = backend.callback_host, port = backend.callback_port)
     influx = context.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
     reaper ! WatchClient(influx)
     countdownLatch = context.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
@@ -55,12 +63,13 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   def init_conductors = {
     started = true
     for (i <- 1 to scenario.parallel) {
+      val conductorName = scenario.vm_template.name_template.format(idGenerator)
       val conductor = context.actorOf(InstanceConductorActor.props(idGenerator,
         cloud, scenario.vm_template, backend, scenario.steps, runNumber, scenario.id, influx, countdownLatch),
         name = "conductor" + idGenerator)
       reaper ! WatchСonductor(conductor)
       conductor ! "start"
-      conductors += conductor
+      conductors(conductorName) = conductor
       idGenerator += 1
     }
   }
@@ -74,7 +83,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
 
   def new_iteration = {
     if (runNumber == scenario.repeat) {
-      terminate_clients
+      terminate_listener
     } else {
       runNumber += 1
       reset_event_counters
@@ -84,10 +93,18 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
 
   }
 
+  def terminate_listener = {
+    implicit val system = context.system
+    callback_listener ! Http.Unbind
+
+  }
+
   def terminate_clients = {
-     context stop influx
-     context stop ansible
-     context stop countdownLatch
+    context stop callback_listener
+    context stop influx
+    context stop ansible
+    context stop countdownLatch
+    context stop callback_service
   }
 
   def on_sync_events = {
@@ -150,7 +167,11 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   private def continueConductorExecution = {
-    conductors.foreach((a: ActorRef) => a ! "processNextStep")
+    conductors.values.foreach((a: ActorRef) => a ! "processNextStep")
+  }
+
+  def notifyConductorOnEvent(event: InstanceAvailableEvent): Unit = {
+    conductors(event.name) ! event
   }
 
   def receive = {
@@ -162,6 +183,16 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     case "resume_conductors" => continueConductorExecution
     case "processNextEvent" => on_event_result
     case "load_test" => load_test
+    case Http.Bound(address) => {
+      context.system.log.info("http bound event received: {}", address)
+      callback_listener = sender()
+      reaper ! WatchClient(callback_listener)
+    }
+    case Http.Unbound => {
+      terminate_clients
+    }
+
+    case x: InstanceAvailableEvent => notifyConductorOnEvent(x)
     case ip: FloatingIPAddress => cache_instance_ip(ip)
     case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }

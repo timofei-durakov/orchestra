@@ -157,9 +157,9 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   var endpoint = None: Option[String]
   val instanceName = vmTemplate.name_template.format(id)
   var domain_id: String = null
+  var instanceAvailableEventReceived = false
 
   import context.dispatcher
-//  import context.system
 
   def init = {
     auth = Some(context.actorOf(AuthActor.props(cloud), "auth"))
@@ -241,6 +241,26 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
     val response: Future[HttpResponse] = pipeline(Delete(endpoint.get + "/os-floating-ips/" + floatingIPId.get))
     requestedOperation = Some("delete_floating_ip")
     response.pipeTo(self)
+  }
+
+  def waitForInstanceBecomeAvailable() = {
+    if (instanceAvailableEventReceived) {
+      self ! "processNextStep"
+    }
+  }
+
+  def instance_available(event: InstanceAvailableEvent) = {
+    context.system.log.info("instance {} is now available for ssh", instanceName)
+    instanceAvailableEventReceived = true
+    scenario(currentStep.get) match {
+      case x:WaitForInstanceBecomeAvailable => {
+        self ! "processNextStep"
+      }
+      case a:Any => {
+        context.system.log.info("instance available event {} received, current step is {} ", event, a)
+      }
+    }
+
   }
 
   def waitFor(x:WaitFor) = {
@@ -442,12 +462,14 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
     }
     case x:Build => build(x)
     case "processNextStep" => processNextStep
+    case x:InstanceAvailableEvent => instance_available(x)
     case "start" => init
     case x:CreateFloatingIp => create_floating_ip
     case x:DeleteFloatingIp => delete_floating_ip
     case x:AssociateFloatingIp => associate_floating_ip
     case x:LiveMigrate => liveMigrate
     case x:WaitFor => waitFor(x)
+    case x:WaitForInstanceBecomeAvailable => waitForInstanceBecomeAvailable
     case x:WaitForFloatingIpDisassociate => waitForFloatingIpDisAssociated
     case x:WaitForFloatingIpAssociate => waitForFloatingIpAssociated
     case x:DeleteInstance => delete

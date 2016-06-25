@@ -1,8 +1,10 @@
 
 import java.io.File
-import java.util.Base64
+import spray.can.Http
+
 import scala.io.Source
 import akka.actor.{ActorSystem}
+import akka.io.IO
 import net.jcazevedo.moultingyaml._
 
 import org.orchestra.actor._

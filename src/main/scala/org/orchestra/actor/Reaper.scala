@@ -43,6 +43,7 @@ class Reaper extends Actor {
       watchedClients += ref
     }
     case Terminated(ref) => {
+      context.system.log.info("terminated event received {}", ref)
       if (watchedConductors.contains(ref)) {
         watchedConductors -= ref
         if (watchedConductors.isEmpty) allSoulsReaped

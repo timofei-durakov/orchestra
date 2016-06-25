@@ -11,6 +11,8 @@ final case class CreateFloatingIp() extends Step
 
 final case class WaitFor(state: String) extends Step
 
+final case class WaitForInstanceBecomeAvailable() extends Step
+
 final case class AssociateFloatingIp() extends Step
 
 final case class WaitForFloatingIpAssociate() extends Step

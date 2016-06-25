@@ -8,7 +8,7 @@
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
     database: "huge_pages"
-    callback_host: "172.18.86.186"
+    callback_host: "172.16.18.8"
     callback_port: 9999
   periodic:
      - check_endpoints:
@@ -31,7 +31,7 @@
          nova_max_downtime: 500
        id: 1
        parallel: 1
-       repeat: 10
+       repeat: 1
        playbook_path: "/home/tdurakov/migration-monitor/ansible"
        hosts:
        - 172.16.166.10
@@ -51,6 +51,7 @@
        - start_ping:
            frequency: 0.2
            sync: true
+       - wait_for_instance_become_available
        - sync_execution
        - sync_execution
        - live_migrate

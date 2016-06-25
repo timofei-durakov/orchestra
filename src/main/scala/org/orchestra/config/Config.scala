@@ -68,6 +68,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
         case "create_floating_ip" => CreateFloatingIp().asInstanceOf[Step]
         case "associate_floating_ip" => AssociateFloatingIp().asInstanceOf[Step]
         case "wait_for_floating_ip_associate" => WaitForFloatingIpAssociate().asInstanceOf[Step]
+        case "wait_for_instance_become_available" => WaitForInstanceBecomeAvailable().asInstanceOf[Step]
         case "sync_execution" => SyncExecution().asInstanceOf[Step]
         case "live_migrate" => LiveMigrate().asInstanceOf[Step]
         case "stop_ping" => StopPing().asInstanceOf[Step]
