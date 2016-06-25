@@ -1,3 +1,5 @@
+jdk:
+  - oraclejdk8
 cache:
   directories:
     - $HOME/.ivy2/cache
