@@ -7,12 +7,15 @@ import net.jcazevedo.moultingyaml._
   */
 
 object ConfigYamlProtocol extends DefaultYamlProtocol {
+
   implicit val loadConfigFormat = yamlFormat2(LoadConfig)
   implicit val cloudFormat = yamlFormat4(Cloud)
   implicit val vmTemplateFormat = yamlFormat7(VmTemplate)
   implicit val envConfigFormat = yamlFormat4(EnvConfig)
   implicit val backendFormat = yamlFormat4(Backend)
   implicit val appConfigFormat = yamlFormat1(AppConfig)
+
+  //implicit val configFormat = yamlFormat4(Config)
 
   implicit object scenarioFormat extends YamlFormat[Scenario] {
     override def read(yaml: YamlValue): Scenario = {
@@ -29,6 +32,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
 
       val on_sync_events = if (map.contains(YamlString("on_sync_events"))) map(YamlString("on_sync_events")).convertTo[List[String]] else List.empty[String]
       val steps = map(YamlString("steps")).asInstanceOf[YamlArray]
+
       val stepList = steps.elements.map {
         case y: YamlString => parseYamlStringAsStep(y)
         case y: YamlObject => parseYamlObjectAsStep(y)
@@ -94,6 +98,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
         )
     }
   }
+
   implicit val configFormat = yamlFormat5(Config)
 }
 
