@@ -1,14 +1,14 @@
 ---
   cloud:
     username: "admin"
-    projectname: "demo"
+    projectname: "admin"
     password: "secret"
-    auth_url: "http://172.16.166.12:5000/v2.0/tokens"
+    auth_url: "http://172.16.166.13:5000/v2.0/tokens"
   run_number: 1
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
     database: "huge_pages"
-    callback_host: "172.16.18.8"
+    callback_host: "172.18.66.80"
     callback_port: 9999
   periodic:
      - check_endpoints:
@@ -19,28 +19,29 @@
          vm_workers: 1
          malloc_mem_mb: 50
        vm_template:
-         flavorRef: "999"
-         networkRef: "c2b1c65d-3333-43cf-b678-23224fe59fcb"
-         imageRef: "2044ba6d-f636-4d1d-bc23-2162d7c76b9c"
-         key_name: "orchestra"
+         flavorRef: "2"
+         networkRef: "d9fbd4d1-25a8-4e4d-9f19-30934293e52e"
+         imageRef: "3036a5ba-8f04-404b-95d3-daf70ddb2c27"
+#         key_name: "orchestra"
          name_template: "vm_%d"
-       pre_config:
-         nova_compress: false
-         nova_autoconverge: false
-         nova_concurrent_migrations: 1
-         nova_max_downtime: 500
+         floating_ip_pool: "external-router"
+#       pre_config:
+#         nova_compress: false
+#         nova_autoconverge: false
+#         nova_concurrent_migrations: 1
+#         nova_max_downtime: 500
        id: 1
-       parallel: 1
+       parallel: 5
        repeat: 1
        playbook_path: "/home/tdurakov/migration-monitor/ansible"
        hosts:
-       - 172.16.166.10
-       - 172.16.166.11
+       - 172.16.166.14
+       - 172.16.166.15
        on_finish:
        - shutdown_telegraph
-       on_sync_events:
-       - start_telegraph
-       - load_test
+#       on_sync_events:
+#       - start_telegraph
+#       - load_test
        steps:
        - build
        - create_floating_ip
@@ -48,16 +49,16 @@
            state: "ACTIVE"
        - associate_floating_ip
        - wait_for_floating_ip_associate
-       - start_ping:
-           frequency: 0.2
-           sync: true
+#       - start_ping:
+#           frequency: 0.2
+#           sync: true
        - wait_for_instance_become_available
-       - sync_execution
-       - sync_execution
-       - live_migrate
+#       - sync_execution
+#       - sync_execution
+#       - live_migrate
        - wait_for:
            state: "ACTIVE"
-       - stop_ping
-       - delete_instance
-       - wait_for_floating_ip_disassociate
-       - delete_floating_ip
+#       - stop_ping
+#       - delete_instance
+#       - wait_for_floating_ip_disassociate
+#       - delete_floating_ip

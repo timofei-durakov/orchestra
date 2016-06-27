@@ -2,6 +2,13 @@
 
 [![Build Status](https://travis-ci.org/timofei-durakov/orchestra.svg?branch=master)](https://travis-ci.org/timofei-durakov/orchestra)
 
+## Config
+
+  Orchestra reuse floating ips from pool, and host verification could fail while trying to ssh, 
+  It's highly recommended to update Ansible config option:
+  
+  `host_key_checking = False`
+
 ## TODOs
 
 - remove environment-specific parameters from scenario config: `playbook_path`, `key_name`

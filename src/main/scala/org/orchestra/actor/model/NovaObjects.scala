@@ -34,7 +34,7 @@ final case class DetailServerResponse(server: ServerDetails)
 final case class Network(uuid: String)
 
 final case class CreateServer(name:String, imageRef: String, availability_zone: Option[String], flavorRef: String, networks: List[Network],
-                              key_name: String, user_data:Option[String], min_count: Int = 1, max_count: Int = 1)
+                              key_name: Option[String], user_data:Option[String], min_count: Int = 1, max_count: Int = 1)
 
 final case class CreateServerRequest(server: CreateServer)
 
@@ -46,7 +46,7 @@ final case class CreateServerResponseWrapper(server: CreateServerResponse)
 
 final case class LiveMigration(host: Option[String] = None, block_migration: Boolean = false, disk_over_commit: Boolean = false)
 final case class LiveMigrationRequest(`os-migrateLive`: LiveMigration)
-final case class FloatingIP(fixed_ip: Option[String], id: String, instance_id: Option[String], ip: String, pool: String)
+final case class FloatingIP(fixed_ip: Option[String], id: Option[String], instance_id: Option[String], ip: Option[String], pool: Option[String])
 final case class FloatingIPResponse(floating_ip: FloatingIP)
 final case class FloatingIPAddress(address: String)
 final case class AddFloatingIPRequest(addFloatingIp: FloatingIPAddress)

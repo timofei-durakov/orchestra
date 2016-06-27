@@ -50,14 +50,18 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def configure_env = {
-    ansible ! AnsibleCommand(
-      scenario.hosts,
-      vmFloatingIps,
-      "nova_flags.yml",
-      immutable.Map("nova_compress" -> scenario.pre_config.nova_compress.toString,
-                    "nova_autoconverge" -> scenario.pre_config.nova_autoconverge.toString,
-                    "nova_concurrent_migrations" -> scenario.pre_config.nova_concurrent_migrations.toString,
-                    "nova_max_downtime" -> scenario.pre_config.nova_max_downtime.toString))
+    if (scenario.pre_config != null) {
+      ansible ! AnsibleCommand(
+        scenario.hosts,
+        vmFloatingIps,
+        "nova_flags.yml",
+        immutable.Map("nova_compress" -> scenario.pre_config.get.nova_compress.toString,
+          "nova_autoconverge" -> scenario.pre_config.get.nova_autoconverge.toString,
+          "nova_concurrent_migrations" -> scenario.pre_config.get.nova_concurrent_migrations.toString,
+          "nova_max_downtime" -> scenario.pre_config.get.nova_max_downtime.toString))
+    } else {
+      self ! "processNextEvent"
+    }
   }
 
   def init_conductors = {
@@ -121,8 +125,10 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     if (current_finish_event == scenario.on_finish.length) {
       new_iteration
     } else {
-      self ! scenario.on_finish(current_finish_event)
-      current_finish_event += 1
+      if (!scenario.on_finish.isEmpty){
+        self ! scenario.on_finish(current_finish_event)
+        current_finish_event += 1
+      }
     }
   }
 
