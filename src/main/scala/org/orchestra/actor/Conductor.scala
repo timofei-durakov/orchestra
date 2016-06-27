@@ -215,19 +215,20 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
 
   def create_floating_ip = {
     context.system.log.info("floating ip creation started for server {}", instanceName)
+    val floatingIP = FloatingIP(None, None, None, None, vmTemplate.floating_ip_pool)
     val pipeline: HttpRequest => Future[FloatingIPResponse] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
         ~> unmarshal[FloatingIPResponse]
       )
-    val response: Future[FloatingIPResponse] = pipeline(Post(endpoint.get + "/os-floating-ips"))
+    val response: Future[FloatingIPResponse] = pipeline(Post(endpoint.get + "/os-floating-ips", floatingIP))
     response.pipeTo(self)
   }
 
   def handleCreatedFloatingIP(response: FloatingIP) = {
     context.system.log.info("response received for floating ip creation, server {} floatingIP {}", instanceName, response.ip)
-    floatingIP = Some(response.ip)
-    floatingIPId = Some(response.id)
+    floatingIP = response.ip
+    floatingIPId = Some(response.id.get)
     self ! "processNextStep"
   }
 
