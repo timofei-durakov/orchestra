@@ -8,7 +8,7 @@
   backend:
     influx_host: "http://monit-ent.vm.mirantis.net:8086"
     database: "huge_pages"
-    callback_host: "172.16.18.8"
+    callback_host: "172.18.86.186"
     callback_port: 9999
   periodic:
      - check_endpoints:
@@ -24,6 +24,7 @@
          imageRef: "2044ba6d-f636-4d1d-bc23-2162d7c76b9c"
          key_name: "orchestra"
          name_template: "vm_%d"
+         floating_ip_pool: "public"
        pre_config:
          nova_compress: false
          nova_autoconverge: false

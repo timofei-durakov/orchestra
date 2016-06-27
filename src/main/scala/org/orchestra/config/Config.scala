@@ -9,7 +9,7 @@ import net.jcazevedo.moultingyaml._
 object ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val loadConfigFormat = yamlFormat2(LoadConfig)
   implicit val cloudFormat = yamlFormat4(Cloud)
-  implicit val vmTemplateFormat = yamlFormat6(VmTemplate)
+  implicit val vmTemplateFormat = yamlFormat7(VmTemplate)
   implicit val envConfigFormat = yamlFormat4(EnvConfig)
   implicit val backendFormat = yamlFormat4(Backend)
 
@@ -17,15 +17,16 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
     override def read(yaml: YamlValue): Scenario = {
       val map = yaml.asYamlObject.fields
       val vmTemplate = map(YamlString("vm_template")).convertTo[VmTemplate]
-      val preConfig = map(YamlString("pre_config")).convertTo[EnvConfig]
+      val preConfig = if (map.contains(YamlString("pre_config"))) Some(map(YamlString("pre_config")).convertTo[EnvConfig]) else null
       val loadConfig = map(YamlString("load_config")).convertTo[LoadConfig]
       val id = map(YamlString("id")).convertTo[Int]
       val parallel = map(YamlString("parallel")).convertTo[Int]
       val repeat = map(YamlString("repeat")).convertTo[Int]
       val playbook_path = map(YamlString("playbook_path")).convertTo[String]
       val hosts = map(YamlString("hosts")).convertTo[List[String]]
-      val on_finish = map(YamlString("on_finish")).convertTo[List[String]]
-      val on_sync_events = map(YamlString("on_sync_events")).convertTo[List[String]]
+      val on_finish = if (map.contains(YamlString("on_finish"))) map(YamlString("on_finish")).convertTo[List[String]] else List.empty[String]
+
+      val on_sync_events = if (map.contains(YamlString("on_sync_events"))) map(YamlString("on_sync_events")).convertTo[List[String]] else List.empty[String]
       val steps = map(YamlString("steps")).asInstanceOf[YamlArray]
       val stepList = steps.elements.map {
         case y: YamlString => parseYamlStringAsStep(y)
@@ -80,7 +81,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
 
     override def write(obj: Scenario): YamlValue = {
       YamlObject(YamlString("vm_template") -> obj.vm_template.toYaml,
-        YamlString("pre_config") -> obj.pre_config.toYaml,
+        YamlString("pre_config") -> obj.pre_config.get.toYaml,
         YamlString("id") -> YamlNumber(obj.id),
         YamlString("parallel") -> YamlNumber(obj.parallel),
         YamlString("repeat") -> YamlNumber(obj.repeat),
@@ -110,7 +111,8 @@ final case class VmTemplate(
   flavorRef: String,
   networkRef: String,
   imageRef: String,
-  key_name: String,
+  key_name: Option[String],
+  floating_ip_pool: Option[String],
   name_template: String)
 
 final case class EnvConfig(
@@ -121,7 +123,7 @@ final case class EnvConfig(
 
 final case class Scenario(
   vm_template: VmTemplate,
-  pre_config: EnvConfig,
+  pre_config: Option[EnvConfig],
   id: Int,
   parallel: Int,
   repeat: Int,
