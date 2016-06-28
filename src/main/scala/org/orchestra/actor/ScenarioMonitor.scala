@@ -50,7 +50,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def configure_env = {
-    if (scenario.pre_config != null) {
+    if (scenario.pre_config.isDefined) {
       ansible ! AnsibleCommand(
         scenario.hosts,
         vmFloatingIps,
@@ -125,7 +125,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     if (current_finish_event == scenario.on_finish.length) {
       new_iteration
     } else {
-      if (!scenario.on_finish.isEmpty){
+      if (!scenario.on_finish.isEmpty) {
         self ! scenario.on_finish(current_finish_event)
         current_finish_event += 1
       }
@@ -138,7 +138,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
       vmFloatingIps,
       "start.yml",
       immutable.Map("lm_run" -> runNumber.toString,
-                    "lm_scenario" -> scenario.id.toString))
+        "lm_scenario" -> scenario.id.toString))
   }
 
   def shutdown_telegraph = {
@@ -150,12 +150,16 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def load_test = {
-    ansible ! AnsibleCommand(
-      scenario.hosts,
-      vmFloatingIps,
-      "load.yml",
-      immutable.Map("vm_workers" -> scenario.load_config.vm_workers.toString,
-                    "malloc_mem_mb" -> scenario.load_config.malloc_mem_mb.toString))
+    if (scenario.load_config.isDefined) {
+      ansible ! AnsibleCommand(
+        scenario.hosts,
+        vmFloatingIps,
+        "load.yml",
+        immutable.Map("vm_workers" -> scenario.load_config.get.vm_workers.toString,
+          "malloc_mem_mb" -> scenario.load_config.get.malloc_mem_mb.toString))
+    } else {
+      self ! "processNextEvent"
+    }
   }
 
   def on_event_result = {
@@ -200,6 +204,6 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
 
     case x: InstanceAvailableEvent => notifyConductorOnEvent(x)
     case ip: FloatingIPAddress => cache_instance_ip(ip)
-    case a:Any => context.system.log.warning("unexpected message received => {}", a)
+    case a: Any => context.system.log.warning("unexpected message received => {}", a)
   }
 }

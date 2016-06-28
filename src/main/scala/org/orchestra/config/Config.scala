@@ -17,8 +17,8 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
     override def read(yaml: YamlValue): Scenario = {
       val map = yaml.asYamlObject.fields
       val vmTemplate = map(YamlString("vm_template")).convertTo[VmTemplate]
-      val preConfig = if (map.contains(YamlString("pre_config"))) Some(map(YamlString("pre_config")).convertTo[EnvConfig]) else null
-      val loadConfig = map(YamlString("load_config")).convertTo[LoadConfig]
+      val preConfig = if (map.contains(YamlString("pre_config"))) Some(map(YamlString("pre_config")).convertTo[EnvConfig]) else None
+      val loadConfig = if (map.contains(YamlString("load_config"))) Some(map(YamlString("load_config")).convertTo[LoadConfig]) else None
       val id = map(YamlString("id")).convertTo[Int]
       val parallel = map(YamlString("parallel")).convertTo[Int]
       val repeat = map(YamlString("repeat")).convertTo[Int]
@@ -132,7 +132,7 @@ final case class Scenario(
   on_finish: List[String],
   on_sync_events: List[String],
   steps: List[Step],
-  load_config: LoadConfig)
+  load_config: Option[LoadConfig])
 
 final case class Backend(
   influx_host: String,
