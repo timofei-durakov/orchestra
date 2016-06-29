@@ -1,17 +1,20 @@
-package org.orchestra.actor
+package org.orchestra.openstack
 
 import java.util.Base64
+
 import akka.actor._
 import akka.pattern.pipe
-import spray.client.pipelining._
 
-import org.orchestra.config._
-import org.orchestra.actor.model._
-import spray.http.{HttpResponse, HttpRequest}
-import spray.httpx.SprayJsonSupport
 import spray.json._
+import spray.client.pipelining._
+import spray.http.{HttpRequest, HttpResponse}
+import spray.httpx.SprayJsonSupport
 
 import scala.concurrent.Future
+import org.orchestra.common.model._
+import org.orchestra.openstack.model._
+import org.orchestra.openstack.config._
+import org.orchestra.common.PingActor
 
 /**
   * Created by tdurakov on 20.03.16.

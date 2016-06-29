@@ -14,7 +14,7 @@
     nova_concurrent_migrations: 0
     nova_max_downtime: 500
 
-  remote_user: stack
+  remote_user: ubuntu
   become_method: sudo
 
   tasks:

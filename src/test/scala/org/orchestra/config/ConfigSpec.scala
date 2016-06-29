@@ -1,8 +1,8 @@
 import org.scalatest._
 import net.jcazevedo.moultingyaml._
 
-import org.orchestra.config.Config
-import org.orchestra.config.ConfigYamlProtocol._
+import org.orchestra.openstack.config.Config
+import org.orchestra.openstack.config.ConfigYamlProtocol._
 
 class ConfigSpec extends FlatSpec with Matchers {
 

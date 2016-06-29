@@ -1,0 +1,62 @@
+type: libvirt
+
+env:
+  influx:
+    host: monit-ent.vm.mirantis.net
+    port: 8086
+    database: "libvirt_dev"
+  callback:
+    host: "192.168.42.1"
+    port: 9999
+  libvirt:
+    source: 192.168.42.11
+    destination: 192.168.42.12
+  playbook_path: "./ansible"
+
+test:
+  before_all:
+    - install_prerequisites
+  test_run:
+    - generate_config_drive
+    - boot_vm
+#    - start_telegraf
+    - wait_for_call_home
+    - migrate
+#    - stop_telegraf
+    - drop_domain
+  after_all:
+    - clean_storage
+scenarios:
+  simple:
+    id: 1
+    repeat: 2
+    load:
+      vm_workers: 2
+      malloc_mem_mb: 256
+    migrate:
+      qemu_monitor_commands:
+        - "migrate_set_parameter x-cpu-throttle-initial 30"
+        - "migrate_set_parameter x-cpu-throttle-increment 15"
+      virsh_migrate_commandline_args: "--auto-converge"
+#  complex:
+#      id: 2
+#      repeat: 2
+#      load:
+#        vm_workers: 2
+#        malloc_mem_mb: 512
+#      migrate:
+#        autoconverge: true
+#        postcopy: true
+#        compressed: true
+#        max_downtime: 500
+#  ultracomplex:
+#    id: 2
+#    repeat: 2
+#    load:
+#      vm_workers: 2
+#      malloc_mem_mb: 256
+#    migrate:
+#      autoconverge: true
+#      postcopy: true
+#      compressed: true
+#      max_downtime: 500

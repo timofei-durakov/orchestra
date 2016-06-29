@@ -1,15 +1,13 @@
-package org.orchestra.actor
+package org.orchestra.common
 
 /**
   * Created by tdurakov on 24.06.16.
   */
 
 import akka.actor._
-import akka.io.IO
-import org.orchestra.actor.Reaper.WatchClient
-import org.orchestra.actor.model.{InstanceAvailableEvent}
-import spray.http.HttpMethods.{GET}
+import org.orchestra.common.model.InstanceAvailableEvent
 import spray.can.Http
+import spray.http.HttpMethods.GET
 import spray.http.{HttpRequest, HttpResponse}
 
 object InstanceCallbackService {
@@ -23,7 +21,7 @@ class InstanceCallbackService(scenarioMonitor: ActorRef) extends Actor with Acto
     case _: Http.Connected => sender ! Http.Register(self)
 
     case HttpRequest(GET, path, _, _, _) => {
-      var req = path.path.tail.head
+      val req = path.path.tail.head
       scenarioMonitor ! InstanceAvailableEvent(req.toString)
       sender ! HttpResponse(status = 200)
     }

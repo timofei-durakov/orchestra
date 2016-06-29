@@ -1,22 +1,23 @@
-package org.orchestra.actor
+package org.orchestra.common
 
 import java.io.File
 
 import akka.actor.{Actor, Props}
+
 import scala.collection._
-
 import scala.util.parsing.json.JSONObject
-
 import java.nio.file.Paths
+
+import scala.Predef.Map
 
 /**
   * Created by tdurakov on 30.03.16.
   */
 case class AnsibleCommand(
   hostIps: List[String],
-  vmIps: mutable.Set[String],
+  vmIps: Set[String],
   playbook: String,
-  extra_args: immutable.Map[String, String])
+  extra_args: Map[String, String])
 
 
 object AnsibleActor {
@@ -47,7 +48,6 @@ class AnsibleActor(playbook_path: String) extends Actor {
     populateHosts(ac)
 
     val playbook = Paths.get(playbook_path, ac.playbook).toString
-
     val cmd = Seq("ansible-playbook", playbook, "-i", hosts.getCanonicalPath, "--extra-vars", JSONObject(ac.extra_args).toString())
     context.system.log.debug("command to be executed \"{}\"", cmd.mkString(" "))
     cmd.!

@@ -1,9 +1,9 @@
-package org.orchestra.actor
+package org.orchestra.openstack
 
 import akka.actor.{Actor, Props}
 import akka.pattern.pipe
-import org.orchestra.actor.model.{Access, Auth, AuthRequest, AuthResponse, Endpoint, Metadata, PasswordCredentials, Role, Service, Tenant, Token, Trust, User}
-import org.orchestra.config.Cloud
+import org.orchestra.openstack.config.Cloud
+import org.orchestra.openstack.model._
 import spray.client.pipelining._
 import spray.http.HttpRequest
 import spray.httpx.SprayJsonSupport

@@ -1,12 +1,10 @@
-package org.orchestra.actor
+package org.orchestra.common
 
 import akka.actor.{Props, Actor}
 import akka.pattern.pipe
 import spray.client.pipelining._
 
-import org.orchestra.config.{VmTemplate, Cloud}
 
-import org.orchestra.actor.model._
 import spray.http.{HttpResponse, HttpRequest}
 
 import scala.collection.mutable.ArrayBuffer

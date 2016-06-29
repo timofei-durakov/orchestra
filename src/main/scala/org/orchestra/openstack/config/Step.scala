@@ -1,4 +1,4 @@
-package org.orchestra.config
+package org.orchestra.openstack.config
 
 /**
   * Created by tdurakov on 05.04.16.

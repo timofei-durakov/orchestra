@@ -1,0 +1,10 @@
+- name: generate meta-data
+  template: src="meta-data.j2" dest="~/meta-data"
+
+- name: generate user-data
+  template: src="user-data.j2" dest="~/user-data"
+
+- name: prepare config drive
+  command: genisoimage -o /var/lib/libvirt/images/{{ config_drive_name }} -V cidata -r -J ~/meta-data ~/user-data
+  args:
+    creates: "/var/lib/libvirt/images/{{ config_drive_name }}"

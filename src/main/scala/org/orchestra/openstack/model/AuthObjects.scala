@@ -1,4 +1,4 @@
-package org.orchestra.actor.model
+package org.orchestra.openstack.model
 
 /**
   * Created by tdurakov on 19.03.16.

@@ -1,4 +1,4 @@
-package org.orchestra.actor
+package org.orchestra.common
 
 import akka.actor.{ActorRef, Props, Actor}
 import scala.sys.process.ProcessIO

@@ -1,12 +1,16 @@
-package org.orchestra.actor
+package org.orchestra.openstack
 
-import akka.actor.{ActorRef, Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.io.IO
-import org.orchestra.actor.Reaper.{WatchClient, WatchСonductor}
-import org.orchestra.actor.model.{InstanceAvailableEvent, FloatingIPAddress}
 
-import org.orchestra.config.{Backend, Scenario, Cloud}
 import spray.can.Http
+
+import org.orchestra.common._
+import org.orchestra.common.model.InstanceAvailableEvent
+import org.orchestra.common.Reaper._
+
+import org.orchestra.openstack.config._
+import org.orchestra.openstack.model.FloatingIPAddress
 
 import scala.collection._
 
@@ -41,7 +45,9 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     reaper = context.actorOf(Reaper.props, name = "reaper")
     callback_service = context.actorOf(InstanceCallbackService.props(context.self))
     reaper ! WatchClient(callback_service)
+
     IO(Http) ! Http.Bind(callback_service, interface = backend.callback_host, port = backend.callback_port)
+
     influx = context.actorOf(InfluxDB.props(backend.influx_host, backend.database), "influx")
     reaper ! WatchClient(influx)
     countdownLatch = context.actorOf(CountdownLatch.props(scenario.parallel), "cdl")
@@ -101,7 +107,6 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   def terminate_listener = {
     implicit val system = context.system
     callback_listener ! Http.Unbind
-
   }
 
   def terminate_clients = {
@@ -133,7 +138,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     }
   }
 
-  def start_telegraph = {
+  def start_telegraf = {
     ansible ! AnsibleCommand(
       scenario.hosts,
       vmFloatingIps,
@@ -142,7 +147,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
         "lm_scenario" -> scenario.id.toString))
   }
 
-  def shutdown_telegraph = {
+  def shutdown_telegraf = {
     ansible ! AnsibleCommand(
       scenario.hosts,
       vmFloatingIps,
@@ -187,8 +192,8 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
 
   def receive = {
     case "start" => init_monitor
-    case "start_telegraph" => start_telegraph
-    case "shutdown_telegraph" => shutdown_telegraph
+    case "start_telegraph" => start_telegraf
+    case "shutdown_telegraph" => shutdown_telegraf
     case "countdown_latch_triggered" => on_sync_events
     case "finish_event_triggered" => on_finish
     case "resume_conductors" => continueConductorExecution

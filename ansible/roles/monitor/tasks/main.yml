@@ -9,48 +9,50 @@
   file: path={{ work_dir }} state=directory
   when: work_dir_st.stat.islnk is not defined
 
-- name: Get local dir
-  local_action: shell pwd
-  register: local_dir
-
-- name: check local package
-  local_action: command find .. -type d -name migration-monitor
-  ignore_errors: yes
-  register: local_res
-
-- debug: msg="{{ local_res }}"
-
-- name: Synchronize migration-monitor from local directory '../migration-monitor'
-  synchronize: src="{{ local_dir.stdout }}/../migration-monitor" dest="{{ work_dir }}/../"
-  when: local_res.stdout != ""
+#- name: Get local dir
+#  local_action: shell pwd
+#  register: local_dir
+#
+#- name: check local package
+#  local_action: command find .. -type d -name migration-monitor
+#  ignore_errors: yes
+#  register: local_res
+#
+#- name: Synchronize migration-monitor from local directory '../migration-monitor'
+#  synchronize: src="{{ local_dir.stdout }}/../migration-monitor" dest="{{ work_dir }}/../"
+#  when: local_res.stdout != ""
 
 - name: Install git
   apt: name=git
-  when: local_res.stdout == ""
+  #when: local_res.stdout == ""
 
 - name: Git clone migration-monitor from github
   git: repo=https://github.com/rk4n/migration-monitor dest={{ work_dir }}
-  when: local_res.stdout == ""
+  #when: local_res.stdout == ""
 
 - name: Generate settings.py from template
   template: src="settings.py.j2" dest="{{ work_dir }}/migrationmonitor/local_settings.py"
 
+- name: check virtualenv
+  stat: path={{ work_dir }}/{{virtualenv_name}}
+  register: virtualenv_st
+
+
 - name: Create virtualenv
-  command: virtualenv .venv
+  command: virtualenv {{ work_dir }}/{{virtualenv_name}}
   args:
-    chdir: "{{ work_dir }}"
     creates: "{{ work_dir }}/{{virtualenv_name}}"
-  when: work_dir_st.stat.islnk is not defined
+  when: virtualenv_st.stat.islnk is not defined
 
 - name: install libvirt-python
   pip: name=libvirt-python virtualenv="{{ work_dir }}/{{virtualenv_name}}"
-  when: work_dir_st.stat.islnk is not defined
-  
+  when: virtualenv_st.stat.islnk is not defined
+
 - name: Setup monitoring tool
   command: "{{ work_dir }}/{{virtualenv_name}}/bin/python ./setup.py develop"
   args:
     chdir: "{{ work_dir }}"
-  when: work_dir_st.stat.islnk is not defined
+  when: virtualenv_st.stat.islnk is not defined
 
 - name: check if monitor is running
   stat: path="{{ monitoring_pid }}"

@@ -1,4 +1,4 @@
-package org.orchestra.actor.model
+package org.orchestra.openstack.model
 
 import spray.httpx.SprayJsonSupport
 

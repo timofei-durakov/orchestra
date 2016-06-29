@@ -1,7 +1,7 @@
-package org.orchestra.actor
+package org.orchestra.common
 
+import akka.actor.{Actor, ActorRef, Props, Terminated}
 
-import akka.actor.{Props, Actor, ActorRef, Terminated}
 import scala.collection.mutable.Set
 
 object Reaper {
@@ -12,6 +12,7 @@ object Reaper {
 
   def props: Props = Props(new Reaper)
 }
+
 
 class Reaper extends Actor {
 
@@ -55,3 +56,4 @@ class Reaper extends Actor {
     case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 }
+
