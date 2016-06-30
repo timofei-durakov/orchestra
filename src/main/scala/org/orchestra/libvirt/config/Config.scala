@@ -35,6 +35,7 @@ final case class Test(
 
 
 final case class MigrationConfig(
+                                  max_downtime: Option[Int],
                                   qemu_monitor_commands: List[String],
                                   virsh_migrate_commandline_args: String)
 

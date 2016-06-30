@@ -34,7 +34,7 @@ object ConfigYamlProtocol  extends DefaultYamlProtocol {
   }
 
   implicit val loadConfigFormat = yamlFormat2(LoadConfig)
-  implicit val migrationFormat = yamlFormat2(MigrationConfig)
+  implicit val migrationFormat = yamlFormat3(MigrationConfig)
   implicit val scenarioFormat = yamlFormat4(Scenario)
 
   implicit val configFormat = yamlFormat3(Config)

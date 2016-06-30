@@ -10,5 +10,5 @@
       chdir: ~
       creates: /var/lib/libvirt/images/{{ domain_name }}.qcow2
   - name: boot VM
-    command: virt-install -n {{ domain_name }} -r 1024 --vcpus=1 --noautoconsole --import --os-type=linux --disk /var/lib/libvirt/images/{{ domain_name }}.qcow2,device=disk,format=qcow2,cache=none --disk /var/lib/libvirt/images/{{ config_drive_name }},device=cdrom
+    command: virt-install -n {{ domain_name }} -r 2048 --vcpus=1 --noautoconsole --import --os-type=linux --disk /var/lib/libvirt/images/{{ domain_name }}.qcow2,device=disk,format=qcow2,cache=none --disk /var/lib/libvirt/images/{{ config_drive_name }},device=cdrom
 

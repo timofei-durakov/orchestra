@@ -17,3 +17,5 @@
     apt: name=virtinst state=present
   - name: install genisoimage
     apt: name=genisoimage state=present
+  - name: install timeout
+    apt: name=timeout state=present

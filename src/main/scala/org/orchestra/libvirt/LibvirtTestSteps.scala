@@ -101,13 +101,21 @@ class LibvirtTestSteps(reaper: ActorRef, env: Env) extends Actor {
   }
 
   def migrate: StepRun = (_, s) => {
-    val extra = Map(
+    val sarr = s.migrate.qemu_monitor_commands.mkString("\", \"")
+    val commands_list = s"""["${sarr}"]"""
+
+    val required = Map(
       "domain_name" -> domain_name,
       "destination_uri" -> s"qemu+tcp://${env.libvirt.destination}/system",
-      "virsh_params" -> ""
+      "virsh_migrate_commandline_args" -> s.migrate.virsh_migrate_commandline_args,
+      "qemu_monitor_commands" -> commands_list
     )
 
-    ansible_command(List(env.libvirt.source), "migrate.yml", extra)
+    val optional =
+      s.migrate.max_downtime.map(d => Map("max_downtime" -> d.toString)).getOrElse(Nil)
+
+
+    ansible_command(List(env.libvirt.source), "migrate.yml", required ++ optional)
   }
 
   def stop_telegraf: StepRun = (_, _) => {
