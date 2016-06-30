@@ -1,16 +1,15 @@
 type: libvirt
-
 env:
   influx:
     host: monit-ent.vm.mirantis.net
     port: 8086
     database: "libvirt_dev"
   callback:
-    host: "192.168.42.1"
+    host: "172.18.196.34"
     port: 9999
   libvirt:
-    source: 192.168.42.11
-    destination: 192.168.42.12
+    source: 172.16.166.16
+    destination: 172.16.166.17
   playbook_path: "./ansible"
 
 test:
@@ -19,44 +18,232 @@ test:
   test_run:
     - generate_config_drive
     - boot_vm
-#    - start_telegraf
+    - start_telegraf
     - wait_for_call_home
     - migrate
-#    - stop_telegraf
+    - stop_telegraf
     - drop_domain
-  after_all:
     - clean_storage
+  after_all:
+    - nothing
+
 scenarios:
-  simple:
-    id: 1
-    repeat: 2
+# ---------------------------------------------------------------------------
+
+  # ac-def-2x256:
+  #   id: 100
+  #   repeat: 5
+  #   load:
+  #     vm_workers: 2
+  #     malloc_mem_mb: 256
+  #   migrate:
+  #     qemu_monitor_commands:
+  #       - ""
+  #     virsh_migrate_commandline_args: "--auto-converge"
+
+  # default autoconverge
+  # 1
+  ac-def-2x512:
+    id: 101
+    repeat: 5
     load:
       vm_workers: 2
-      malloc_mem_mb: 256
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--auto-converge"
+
+  # ac-def-xbz-2x512:
+  #   id: 102
+  #   repeat: 5
+  #   load:
+  #     vm_workers: 2
+  #     malloc_mem_mb: 512
+  #   migrate:
+  #     qemu_monitor_commands:
+  #       - ""
+  #     virsh_migrate_commandline_args: "--auto-converge --compressed"
+
+  # lets see how additional params work
+  # 2
+  ac-init30-inc15-2x512:
+    id: 103
+    repeat: 5
+    load:
+      vm_workers: 2
+      malloc_mem_mb: 512
     migrate:
       qemu_monitor_commands:
         - "migrate_set_parameter x-cpu-throttle-initial 30"
         - "migrate_set_parameter x-cpu-throttle-increment 15"
       virsh_migrate_commandline_args: "--auto-converge"
-#  complex:
-#      id: 2
-#      repeat: 2
-#      load:
-#        vm_workers: 2
-#        malloc_mem_mb: 512
-#      migrate:
-#        autoconverge: true
-#        postcopy: true
-#        compressed: true
-#        max_downtime: 500
-#  ultracomplex:
-#    id: 2
-#    repeat: 2
-#    load:
-#      vm_workers: 2
-#      malloc_mem_mb: 256
-#    migrate:
-#      autoconverge: true
-#      postcopy: true
-#      compressed: true
-#      max_downtime: 500
+      # start from 30% of cpu throttling, increment by 15% (defaults are st:20%, inc:10%)
+
+  # what if we switch to postcopy
+  # 4
+  ac-pc-t60-2x512:
+    id: 104
+    repeat: 5
+    load:
+      vm_workers: 2
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--auto-converge --timeout-postcopy --timeout 60"
+      # use autoconverge, after timeout - switch to postcopy
+
+  # if we increase ac params
+  # 3
+  ac-init50-inc20-2x512:
+    id: 105
+    repeat: 5
+    load:
+      vm_workers: 2
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - "migrate_set_parameter x-cpu-throttle-initial 50"
+        - "migrate_set_parameter x-cpu-throttle-increment 20"
+      virsh_migrate_commandline_args: "--auto-converge"
+# ---------------------------------------------------------------------------
+  # pc-2x256:
+  #   id: 200
+  #   repeat: 5
+  #   load:
+  #     vm_workers: 2
+  #     malloc_mem_mb: 256
+  #   migrate:
+  #     qemu_monitor_commands:
+  #       - ""
+  #     virsh_migrate_commandline_args: "--postcopy --postcopy-after-precopy"
+
+  # default postcopy
+  # 5
+  pc-2x512:
+    id: 201
+    repeat: 5
+    load:
+      vm_workers: 2
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--postcopy --postcopy-after-precopy"
+
+  # default postcopy with compression
+  # 6
+  pc-xbz-2x512:
+    id: 202
+    repeat: 5
+    load:
+      vm_workers: 2
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--postcopy --postcopy-after-precopy --compressed"
+# ---------------------------------------------------------------------------
+  # postcopy with greater load
+  # 8
+  pc-3x512:
+    id: 300
+    repeat: 5
+    load:
+      vm_workers: 3
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--postcopy --postcopy-after-precopy"
+
+  # pc-xbz-3x512:
+  #   id: 301
+  #   repeat: 5
+  #   load:
+  #     vm_workers: 3
+  #     malloc_mem_mb: 512
+  #   migrate:
+  #     qemu_monitor_commands:
+  #       - ""
+  #     virsh_migrate_commandline_args: "--postcopy --postcopy-after-precopy --compressed"
+
+  # autoconver with greater load
+  # 7
+  ac-init50-inc20-3x512:
+    id: 302
+    repeat: 5
+    load:
+      vm_workers: 3
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - "migrate_set_parameter x-cpu-throttle-initial 50"
+        - "migrate_set_parameter x-cpu-throttle-increment 20"
+      virsh_migrate_commandline_args: "--auto-converge"
+
+  # ac-xbz-init50-inc20-3x512:
+  #   id: 303
+  #   repeat: 5
+  #   load:
+  #     vm_workers: 3
+  #     malloc_mem_mb: 512
+  #   migrate:
+  #     qemu_monitor_commands:
+  #       - "migrate_set_parameter x-cpu-throttle-initial 50"
+  #       - "migrate_set_parameter x-cpu-throttle-increment 20"
+  #     virsh_migrate_commandline_args: "--auto-converge --compressed"
+# ---------------------------------------------------------------------------
+
+  # how max downtime works, better?
+  # 9
+  ac-def-3x512:
+    id: 400
+    repeat: 5
+    load:
+      vm_workers: 3
+      malloc_mem_mb: 512
+    migrate:
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--auto-converge"
+
+  # ac-def-md500-3x512:
+  #   id: 401
+  #   repeat: 5
+  #   load:
+  #     vm_workers: 3
+  #     malloc_mem_mb: 512
+  #   migrate:
+  #     max_downtime: 500
+  #     qemu_monitor_commands:
+  #       - ""
+  #     virsh_migrate_commandline_args: "--auto-converge"
+
+  # 10
+  ac-def-md1k-3x512:
+    id: 402
+    repeat: 5
+    load:
+      vm_workers: 3
+      malloc_mem_mb: 512
+    migrate:
+      max_downtime: 1000
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--auto-converge"
+
+  # 11
+  ac-def-md5k-3x512:
+    id: 403
+    repeat: 5
+    load:
+      vm_workers: 3
+      malloc_mem_mb: 512
+    migrate:
+      max_downtime: 5000
+      qemu_monitor_commands:
+        - ""
+      virsh_migrate_commandline_args: "--auto-converge"
+# ---------------------------------------------------------------------------

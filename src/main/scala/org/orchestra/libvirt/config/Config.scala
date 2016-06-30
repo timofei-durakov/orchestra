@@ -1,7 +1,5 @@
 package org.orchestra.libvirt.config
 
-import org.orchestra.common.InfluxDB
-
 
 final case class Influx(
                           host: String,

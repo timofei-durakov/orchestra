@@ -1,7 +1,6 @@
 package org.orchestra.libvirt
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
-import akka.japi.Procedure
 import org.orchestra.common.Reaper.WatchClient
 import org.orchestra.common._
 import org.orchestra.libvirt.config._
@@ -9,8 +8,6 @@ import org.orchestra.libvirt.config._
 /**
   * Created by vova on 6/26/16.
   */
-
-
 
 
 object LibvirtTestSteps {

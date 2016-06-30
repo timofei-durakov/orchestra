@@ -12,7 +12,8 @@ import net.jcazevedo.moultingyaml._
 
 
 object LibvirtMigrationTest {
-  def start(data: String) {
+
+  def start(data: String) : Unit = {
     val config = data.parseYaml.convertTo[Config]
 
     for ((name, scenario) <- config.scenarios) {
