@@ -12,8 +12,16 @@
 ## TODOs
 
 - remove environment-specific parameters from scenario config: `playbook_path`, `key_name`
-
-- use either underscore_case or camelCase for config params
+- use either underscore_case or camelCase
+- clean up Ansible playbooks, and centralize custom  parameters in `application.yaml`
+- split scenarios, from orchestra env config
+- imporove logging
+- document actors communication protocol
+- develop extensible orchestra core
+- cover code with unit-tests
+- dockerize influx db and grafana
+- add more openstack operations, e.g.(???)
+- replace Ansible(???)
 
 ## Scenario generator
 
