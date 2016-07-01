@@ -22,6 +22,8 @@
 - dockerize influx db and grafana
 - add more openstack operations, e.g.(???)
 - replace Ansible(???)
+- CI enablement
+- report generation
 
 ## Scenario generator
 
