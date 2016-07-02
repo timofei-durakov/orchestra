@@ -49,7 +49,7 @@ class AnsibleActor(playbook_path: String) extends Actor {
     val playbook = Paths.get(playbook_path, ac.playbook).toString
 
     val cmd = Seq("ansible-playbook", playbook, "-i", hosts.getCanonicalPath, "--extra-vars", JSONObject(ac.extra_args).toString())
-    context.system.log.info("command to be executed \"{}\"", cmd.mkString(" "))
+    context.system.log.debug("command to be executed \"{}\"", cmd.mkString(" "))
     cmd.!
 
     context.parent ! "processNextEvent"

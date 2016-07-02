@@ -27,7 +27,10 @@ class InstanceCallbackService(scenarioMonitor: ActorRef) extends Actor with Acto
       scenarioMonitor ! InstanceAvailableEvent(req.toString)
       sender ! HttpResponse(status = 200)
     }
-    case _: HttpRequest => sender ! HttpResponse(status = 404, entity = "Unknown resource!")
+    case r: HttpRequest => {
+      context.system.log.warning("unexpected request received by callback service {}", r.toString)
+      sender ! HttpResponse(status = 404, entity = "Unknown resource!")
+    }
 
 
   }

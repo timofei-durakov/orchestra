@@ -18,15 +18,15 @@ class CountdownLatch(amount: Int) extends Actor {
 
   def receive = {
     case x: ActorRef => {
-      context.system.log.info("event received from {}", x.toString())
+      context.system.log.debug("event received from {}", x.toString())
       reported += x
       if (reported.length == amount) {
-        context.system.log.info("all events received")
+        context.system.log.debug("all events received")
         reported.clear
         context.parent ! "countdown_latch_triggered"
       }
     }
-    case _ => context.system.log.info("unexpected message received")
+    case _ => context.system.log.warning("unexpected message received")
   }
 
 }

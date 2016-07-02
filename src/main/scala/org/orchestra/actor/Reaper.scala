@@ -33,17 +33,17 @@ class Reaper extends Actor {
   // Watch and check for termination
   def receive = {
     case WatchСonductor(ref) => {
-      context.system.log.info("ref={} received", ref)
+      context.system.log.debug("ref={} received", ref)
       context.watch(ref)
       watchedConductors += ref
     }
     case WatchClient(ref) => {
-      context.system.log.info("ref={} received", ref)
+      context.system.log.debug("ref={} received", ref)
       context.watch(ref)
       watchedClients += ref
     }
     case Terminated(ref) => {
-      context.system.log.info("terminated event received {}", ref)
+      context.system.log.debug("terminated event received {}", ref)
       if (watchedConductors.contains(ref)) {
         watchedConductors -= ref
         if (watchedConductors.isEmpty) allSoulsReaped

@@ -35,8 +35,9 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   val vmFloatingIps = mutable.Set.empty[String]
   var idGenerator: Int = 0
 
-  def start_conductors = {
+  def init_monitor = {
     implicit val system = context.system
+    system.log.info("Starting  scenario monitor")
     reaper = context.actorOf(Reaper.props, name = "reaper")
     callback_service = context.actorOf(InstanceCallbackService.props(context.self))
     reaper ! WatchClient(callback_service)
@@ -185,7 +186,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
   }
 
   def receive = {
-    case "start" => start_conductors
+    case "start" => init_monitor
     case "start_telegraph" => start_telegraph
     case "shutdown_telegraph" => shutdown_telegraph
     case "countdown_latch_triggered" => on_sync_events
@@ -194,7 +195,7 @@ class ScenarioMonitor(cloud: Cloud, var runNumber: Int, backend: Backend, scenar
     case "processNextEvent" => on_event_result
     case "load_test" => load_test
     case Http.Bound(address) => {
-      context.system.log.info("http bound event received: {}", address)
+      context.system.log.debug("http bound event received: {}", address)
       callback_listener = sender()
       reaper ! WatchClient(callback_listener)
     }

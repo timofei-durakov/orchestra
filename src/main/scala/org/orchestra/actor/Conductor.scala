@@ -162,6 +162,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   import context.dispatcher
 
   def init = {
+    context.system.log.info("Startinng conductor for instance {}", instanceName)
     auth = Some(context.actorOf(AuthActor.props(cloud), "auth"))
     auth.get ! "auth"
   }
@@ -180,7 +181,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
       currentStep = Some(currentStep.get + 1)
 
     if (currentStep.get == scenario.length) {
-      context.system.log.info("shutting down worker for {}", instanceName)
+      context.system.log.info("Stopping conductor for {}", instanceName)
       context.children.foreach((a: ActorRef) => context stop a)
       context stop self
     } else {
@@ -191,7 +192,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def build(x: Build) = {
-    context.system.log.info("build operation started for server {}", instanceName)
+    context.system.log.debug("build operation started for server {}", instanceName)
     val network = List(Network(vmTemplate.networkRef))
     val user_data_string = "#!/bin/bash\n\nwget http://%s:%d/%s".format(
       backend.callback_host, backend.callback_port, instanceName)
@@ -208,13 +209,13 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def handleCreatedServer(response: CreateServerResponse) = {
-    context.system.log.info("response received for server creation {}", instanceName)
+    context.system.log.debug("response received for server creation {}", instanceName)
     serverId = Some(response.id)
     self ! "processNextStep"
   }
 
   def create_floating_ip = {
-    context.system.log.info("floating ip creation started for server {}", instanceName)
+    context.system.log.debug("floating ip creation started for server {}", instanceName)
     val floatingIP = FloatingIP(None, None, None, None, vmTemplate.floating_ip_pool)
     val pipeline: HttpRequest => Future[FloatingIPResponse] = (
       addHeader("X-Auth-Token", access.get.token.id)
@@ -226,14 +227,14 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def handleCreatedFloatingIP(response: FloatingIP) = {
-    context.system.log.info("response received for floating ip creation, server {} floatingIP {}", instanceName, response.ip)
+    context.system.log.debug("response received for floating ip creation, server {} floatingIP {}", instanceName, response.ip)
     floatingIP = response.ip
     floatingIPId = Some(response.id.get)
     self ! "processNextStep"
   }
 
   def delete_floating_ip = {
-    context.system.log.info("floating ip deletion started for server {}", instanceName)
+    context.system.log.debug("floating ip deletion started for server {}", instanceName)
     val pipeline: HttpRequest => Future[HttpResponse] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
@@ -251,14 +252,14 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def instance_available(event: InstanceAvailableEvent) = {
-    context.system.log.info("instance {} is now available for ssh", instanceName)
+    context.system.log.debug("instance {} is now available for ssh", instanceName)
     instanceAvailableEventReceived = true
     scenario(currentStep.get) match {
       case x:WaitForInstanceBecomeAvailable => {
         self ! "processNextStep"
       }
       case a:Any => {
-        context.system.log.info("instance available event {} received, current step is {} ", event, a)
+        context.system.log.debug("instance available event {} received, current step is {} ", event, a)
       }
     }
 
@@ -345,7 +346,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def handleDetailList(response: DetailServersResponse) = {
-    context.system.log.info("servers details received")
+    context.system.log.debug("servers details received")
     response.servers.foreach((d: ServerDetails) => println(d.id + " " + d.status))
   }
 
@@ -355,7 +356,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def liveMigrate = {
-    context.system.log.info("live migration is triggered for server {}", instanceName)
+    context.system.log.debug("live migration is triggered for server {}", instanceName)
     val pipeline: HttpRequest => Future[HttpResponse] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
@@ -367,7 +368,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def delete = {
-    context.system.log.info("delete is triggered for server {}", instanceName)
+    context.system.log.debug("delete is triggered for server {}", instanceName)
     val pipeline: HttpRequest => Future[HttpResponse] = (
       addHeader("X-Auth-Token", access.get.token.id)
         ~> sendReceive
@@ -379,7 +380,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def associate_floating_ip = {
-    context.system.log.info("associate floating ip is triggered for server {} ip {}", instanceName, floatingIP)
+    context.system.log.debug("associate floating ip is triggered for server {} ip {}", instanceName, floatingIP)
     val floatingIpAdress = FloatingIPAddress(address = floatingIP.get)
     val addFloatingIpRequest = AddFloatingIPRequest(addFloatingIp = floatingIpAdress)
     val pipeline: HttpRequest => Future[HttpResponse] = (
@@ -395,7 +396,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def list = {
-    context.system.log.info("servers detailed list is triggered")
+    context.system.log.debug("servers detailed list is triggered")
     val pipeline: HttpRequest => Future[DetailServersResponse] =
       (
         addHeader("X-Auth-Token", access.get.token.id)
@@ -408,7 +409,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def handleHttpResponse(response: HttpResponse) = {
-    context.system.log.info("http response receved with code {} for server {} current requested operation is {}",
+    context.system.log.debug("http response receved with code {} for server {} current requested operation is {}",
       response.status.intValue, instanceName, requestedOperation.get)
     if (response.status.intValue == 202 || response.status.intValue == 200 ||
     response.status.intValue == 204) {
@@ -418,20 +419,20 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def pingStart(x:StartPing) = {
-    context.system.log.info("ping for server {} is triggered", instanceName)
+    context.system.log.debug("ping for server {} is triggered", instanceName)
     ping = Some(context.actorOf(PingActor.props(domain_id, instanceName, floatingIP.get, runNumber, scenarioId, influx),
       "ping"))
     ping.get ! "start"
   }
 
   def pingStop = {
-    context.system.log.info("ping termination for server {} is triggered", instanceName)
+    context.system.log.debug("ping termination for server {} is triggered", instanceName)
     ping.get ! "stop"
     self ! "processNextStep"
   }
 
   def syncExecution = {
-    context.system.log.info("sync with other workers for server {} is triggered", instanceName)
+    context.system.log.debug("sync with other workers for server {} is triggered", instanceName)
     countdownLatch ! self
   }
 
@@ -450,7 +451,7 @@ class InstanceConductorActor(id: Int, cloud: Cloud, vmTemplate: VmTemplate, back
   }
 
   def getFloatingIPDetailsDeferred = {
-    context.system.log.info("failed to receive floating ip info")
+    context.system.log.debug("failed to receive floating ip info")
     Thread.sleep(1000)
     getFloatingIPDetails
   }

@@ -1,5 +1,6 @@
 
 import java.io.File
+import com.typesafe.config.ConfigFactory
 import spray.can.Http
 
 import scala.io.Source
@@ -25,9 +26,11 @@ object Main {
     val data = Source.fromFile(new File(confFile)).mkString
     println(data)
     val config = data.parseYaml.convertTo[Config]
-
+    val actorConfig = ConfigFactory.load
+    val logConfig = ConfigFactory.parseString("akka.loglevel = \"%s\"".format(config.app_config.log_level))
+    val systemConfig = logConfig.withFallback(actorConfig)
     for ((name, scenario) <- config.scenarios) {
-      val system = ActorSystem("OrchestraSystem" + name)
+      val system = ActorSystem("OrchestraSystem" + name, systemConfig)
       system.log.info("starting scenario: {}", name)
       val scenarioMonitor = system.actorOf(ScenarioMonitor.props(config.cloud, config.run_number,
         config.backend, scenario), "monitor")

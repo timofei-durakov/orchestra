@@ -19,7 +19,7 @@ class PingActor(domain_id: String, vmName: String, address: String, runNumber: I
   var instance_reachable = false
 
   def pingStart = {
-    context.system.log.info("ping start for server={} triggered", vmName)
+    context.system.log.debug("ping start for server={} triggered", vmName)
     val command = "ping -i 0.2 -D %s".format(address)
     val pio = new ProcessIO(_ => (),
       stdout => scala.io.Source.fromInputStream(stdout)
@@ -30,14 +30,13 @@ class PingActor(domain_id: String, vmName: String, address: String, runNumber: I
   }
 
   def pingStop = {
-    context.system.log.info("ping process termination for server={} with pid={} triggered", vmName,
+    context.system.log.debug("ping process termination for server={} with pid={} triggered", vmName,
       processRef.get.toString)
     processRef.get.destroy()
   }
 
   def handlePingMessage(message: String) = {
     context.system.log.debug("ping message='{}' for server={} received", message, vmName)
-//    context.system.log.info(message)
     var time = "0"
     if (message.endsWith("ms")) {
       if (!instance_reachable) {
@@ -66,7 +65,7 @@ class PingActor(domain_id: String, vmName: String, address: String, runNumber: I
   def receive = {
     case "start" => pingStart
     case "stop" => pingStop
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 
 }

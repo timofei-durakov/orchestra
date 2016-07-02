@@ -36,7 +36,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   }
   def flushBuffer = {
     val message = buffer.mkString("\n")
-    context.system.log.debug("ping messages '{}' are about to be send to influx", message)
+    context.system.log.debug("Messages '{}' are about to be send to influx", message)
     val pipeline: HttpRequest => Future[HttpResponse] = (
         sendReceive
         ~> unmarshal[HttpResponse]
@@ -58,7 +58,7 @@ class InfluxDB(endpoint: String, database: String) extends Actor{
   def receive = {
     case message: String => sendData(message)
     case response: HttpResponse => handleResponse(response)
-    case _ => context.system.log.info("unexpected message received")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 
 }

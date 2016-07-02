@@ -62,7 +62,7 @@ class AuthActor(cloud: Cloud) extends Actor  with AuthJsonSupport{
   def receive = {
     case "auth" => auth
     case x: AuthResponse => read(x)
-    case _ => println("something has come")
+    case a:Any => context.system.log.warning("unexpected message received => {}", a)
   }
 
 }

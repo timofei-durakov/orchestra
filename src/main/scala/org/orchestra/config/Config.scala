@@ -12,6 +12,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
   implicit val vmTemplateFormat = yamlFormat7(VmTemplate)
   implicit val envConfigFormat = yamlFormat4(EnvConfig)
   implicit val backendFormat = yamlFormat4(Backend)
+  implicit val appConfigFormat = yamlFormat1(AppConfig)
 
   implicit object scenarioFormat extends YamlFormat[Scenario] {
     override def read(yaml: YamlValue): Scenario = {
@@ -93,7 +94,7 @@ object ConfigYamlProtocol extends DefaultYamlProtocol {
         )
     }
   }
-  implicit val configFormat = yamlFormat4(Config)
+  implicit val configFormat = yamlFormat5(Config)
 }
 
 final case class LoadConfig(
@@ -140,10 +141,14 @@ final case class Backend(
   callback_host: String,
   callback_port: Int)
 
+final case class AppConfig(
+  log_level: String)
+
 final case class Config(
   cloud: Cloud,
   run_number: Int,
   backend: Backend,
+  app_config: AppConfig,
   scenarios: Map[String, Scenario])
 
 

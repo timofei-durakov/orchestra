@@ -20,6 +20,8 @@ class ConfigSpec extends FlatSpec with Matchers {
       |  database: "openstack"
       |  callback_host: "172.16.18.8"
       |  callback_port: 9999
+      |app_config:
+      |  log_level: "INFO"
       |scenarios:
       |   simple:
       |     vm_template:
