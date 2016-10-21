@@ -2,3 +2,10 @@
 # Variables here are applicable to all host groups
 
 monitoring_pid: /tmp/migration-monitor.pid
+
+
+shared_storage: /var/lib/libvirt/images
+# shared_storage: /opt/stack/data/nova/instances
+
+default_user: ubuntu
+# default_user: engineer

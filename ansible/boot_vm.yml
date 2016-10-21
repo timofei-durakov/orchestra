@@ -1,14 +1,16 @@
 ---
 - hosts: hard
-  remote_user: ubuntu
+
+  remote_user: "{{ default_user }}"
   become_method: sudo
   become: yes
   tasks:
   - name: create qcow2 image from original backing file
-    command: qemu-img create -f qcow2 -o backing_file=original-trusty-server-cloudimg-amd64-disk1.qcow2 /var/lib/libvirt/images/{{ domain_name }}.qcow2
+    command: qemu-img create -f qcow2 -o backing_file=original-trusty-server-cloudimg-amd64-disk1.qcow2 {{ shared_storage }}/{{ domain_name }}.qcow2
     args:
       chdir: ~
-      creates: /var/lib/libvirt/images/{{ domain_name }}.qcow2
+      creates: "{{ shared_storage }}/{{ domain_name }}.qcow2"
   - name: boot VM
-    command: virt-install -n {{ domain_name }} -r 2048 --vcpus=1 --noautoconsole --import --os-type=linux --disk /var/lib/libvirt/images/{{ domain_name }}.qcow2,device=disk,format=qcow2,cache=none --disk /var/lib/libvirt/images/{{ config_drive_name }},device=cdrom
+    command: virt-install -n {{ domain_name }} -r 2048 --vcpus=1 --accelerate --noautoconsole --import --os-type=linux --disk {{ shared_storage }}/{{ domain_name }}.qcow2,device=disk,format=qcow2,cache=none --disk {{ shared_storage }}/{{ config_drive_name }},device=cdrom
+
 

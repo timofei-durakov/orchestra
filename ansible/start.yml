@@ -1,16 +1,9 @@
 ---
 
 - hosts: hard
-  remote_user: ubuntu
+  remote_user: "{{ default_user }}"
   become: yes
   become_method: sudo
   roles:
   - telegraf
   - monitor
-
-#- hosts: virtual
-#  remote_user: ubuntu
-#  sudo: yes
-#  roles:
-#  - dns
-#  - telegraf

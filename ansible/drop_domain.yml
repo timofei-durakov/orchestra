@@ -1,6 +1,6 @@
 ---
 - hosts: hard
-  remote_user: ubuntu
+  remote_user: "{{ default_user }}"
   become_method: sudo
   become: yes
   tasks:

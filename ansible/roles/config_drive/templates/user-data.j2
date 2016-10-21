@@ -21,5 +21,7 @@ packages:
 runcmd:
  - curl {{ call_home_url }}
  - daemon -- stress --vm {{ vm_workers }} --vm-bytes {{ malloc_mem_mb }}M
+#- ps aux | grep stress | curl --request POST --data-binary @- http://172.18.214.119:8080/
+
 
 

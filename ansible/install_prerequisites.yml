@@ -1,6 +1,6 @@
 ---
 - hosts: hard
-  remote_user: ubuntu
+  remote_user: "{{ default_user }}"
   become_method: sudo
   become: yes
   tasks:
@@ -10,12 +10,11 @@
       dest: ~/trusty-server-cloudimg-amd64-disk1.img
       mode: 0440
   - name: convert ubuntu cloud image to qcow2
-    command: qemu-img convert -O qcow2 ~/trusty-server-cloudimg-amd64-disk1.img /var/lib/libvirt/images/original-trusty-server-cloudimg-amd64-disk1.qcow2
+    command: qemu-img convert -O qcow2 ~/trusty-server-cloudimg-amd64-disk1.img {{ shared_storage }}/original-trusty-server-cloudimg-amd64-disk1.qcow2
     args:
-      creates: /var/lib/libvirt/images/original-trusty-server-cloudimg-amd64-disk1.qcow2
+      creates: "{{ shared_storage }}/original-trusty-server-cloudimg-amd64-disk1.qcow2"
   - name: install virt-install
     apt: name=virtinst state=present
   - name: install genisoimage
     apt: name=genisoimage state=present
-  - name: install timeout
-    apt: name=timeout state=present
+
