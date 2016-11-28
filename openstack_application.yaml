@@ -1,4 +1,5 @@
 ---
+  type: "openstack"
   cloud:
     username: "admin"
     projectname: "demo"

@@ -9,6 +9,7 @@ import org.orchestra.common.config.TestTypeConfigYamlProtocol._
 
 import org.orchestra.libvirt.LibvirtMigrationTest
 import org.orchestra.openstack.OpenstackMigrationTest
+import org.orchestra.vmware.VMwareMigrationTest
 
 import scala.io.Source
 
@@ -22,6 +23,8 @@ object Main {
       OpenstackMigrationTest.start(data)
     } else if( config.`type` == "libvirt"){
       LibvirtMigrationTest.start(data)
+    } else if(config.`type` == "vmware") {
+      VMwareMigrationTest.start(data)
     } else throw new Exception("Unknown test type: {}".format(config.`type`))
   }
 
