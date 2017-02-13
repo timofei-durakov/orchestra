@@ -1,13 +1,8 @@
 ---
-# Vagrant debug
-#
-# - hosts: all
-#   sudo: yes
-#   roles:
-#   - stopper
-
 - hosts: hard
-  remote_user: root
+  remote_user: "{{ default_user }}"
+  become: yes
+  become_method: sudo
   roles:
   - stopper
 

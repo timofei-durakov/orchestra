@@ -1,0 +1,18 @@
+---
+- hosts: hard
+  remote_user: "{{ default_user }}"
+  become_method: sudo
+  become: yes
+  tasks:
+  - name: set max downtime
+    command: virsh migrate-setmaxdowntime {{ domain_name }} {{ max_downtime }}
+    when: max_downtime is defined and max_downtime != ""
+
+  - name: set qemu parameters
+    command: virsh qemu-monitor-command {{ domain_name }} --hmp --cmd "{{ item }}"
+    with_items: "{{ qemu_monitor_commands }}"
+
+  - name: migrate VM
+    command: timeout 300 virsh migrate --live --p2p --verbose {{ virsh_migrate_commandline_args }} {{ domain_name }} {{ destination_uri }}
+    # async: 300
+    # poll: 5

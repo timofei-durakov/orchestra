@@ -1,20 +1,34 @@
 
 import java.io.File
-import com.typesafe.config.ConfigFactory
 import spray.can.Http
 
-import scala.io.Source
-import akka.actor.{ActorSystem}
-import akka.io.IO
 import net.jcazevedo.moultingyaml._
 
-import org.orchestra.actor._
-import org.orchestra.config._
-import org.orchestra.config.ConfigYamlProtocol._
+import org.orchestra.common.config.TestTypeConfig
+import org.orchestra.common.config.TestTypeConfigYamlProtocol._
+
+import org.orchestra.libvirt.LibvirtMigrationTest
+import org.orchestra.openstack.OpenstackMigrationTest
+import org.orchestra.vmware.VMwareMigrationTest
+
+import scala.io.Source
 
 object Main {
 
-  def main(args: Array[String]) {
+  def dispatchTestType(data: String): Unit ={
+
+    val config = data.parseYaml.convertTo[TestTypeConfig]
+
+    if (config.`type` == "openstack") {
+      OpenstackMigrationTest.start(data)
+    } else if( config.`type` == "libvirt"){
+      LibvirtMigrationTest.start(data)
+    } else if(config.`type` == "vmware") {
+      VMwareMigrationTest.start(data)
+    } else throw new Exception("Unknown test type: {}".format(config.`type`))
+  }
+
+  def main(args: Array[String]): Unit = {
     //TODO: change to some existing lib
     if (args.isEmpty) {
       println("application.conf is required")
@@ -24,19 +38,8 @@ object Main {
 
     //TODO: check if it's possible to use akka extensions instead
     val data = Source.fromFile(new File(confFile)).mkString
-    println(data)
-    val config = data.parseYaml.convertTo[Config]
-    val actorConfig = ConfigFactory.load
-    val logConfig = ConfigFactory.parseString("akka.loglevel = \"%s\"".format(config.app_config.log_level))
-    val systemConfig = logConfig.withFallback(actorConfig)
-    for ((name, scenario) <- config.scenarios) {
-      val system = ActorSystem("OrchestraSystem" + name, systemConfig)
-      system.log.info("starting scenario: {}", name)
-      val scenarioMonitor = system.actorOf(ScenarioMonitor.props(config.cloud, config.run_number,
-        config.backend, scenario), "monitor")
-      scenarioMonitor ! "start"
-      system.awaitTermination()
-    }
+
+    dispatchTestType(data)
 
     println("Orchestra system is terminated")
   }

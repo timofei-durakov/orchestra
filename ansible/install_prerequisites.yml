@@ -1,0 +1,20 @@
+---
+- hosts: hard
+  remote_user: "{{ default_user }}"
+  become_method: sudo
+  become: yes
+  tasks:
+  - name: download ubuntu cloud image
+    get_url:
+      url: https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img
+      dest: ~/trusty-server-cloudimg-amd64-disk1.img
+      mode: 0440
+  - name: convert ubuntu cloud image to qcow2
+    command: qemu-img convert -O qcow2 ~/trusty-server-cloudimg-amd64-disk1.img {{ shared_storage }}/original-trusty-server-cloudimg-amd64-disk1.qcow2
+    args:
+      creates: "{{ shared_storage }}/original-trusty-server-cloudimg-amd64-disk1.qcow2"
+  - name: install virt-install
+    apt: name=virtinst state=present
+  - name: install genisoimage
+    apt: name=genisoimage state=present
+

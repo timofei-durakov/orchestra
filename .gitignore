@@ -5,3 +5,6 @@ hosts
 *~
 *.deb
 *.retry
+.ensime
+.ensime_cache/
+*.sublime-*

@@ -1,0 +1,27 @@
+#cloud-config
+hostname: target_node
+
+users:
+- default
+- name: virt
+  lock-passwd: false
+  passwd: $6$rounds=4096$oVqk/wpxSw$wa1NQg6/P7VeuiSO2Rpx0k99d55WMbeDTXP5t8jFJeWxLgvttdeYj91Q/Wtrhp8FI3XsGYRIp5vuBaSvqgXXX1
+  sudo: "ALL=(ALL) NOPASSWD:ALL"
+  groups: sudo
+  shell: /bin/bash
+
+manage-resolv-conf: true
+resolv_conf:
+ nameservers: ['8.8.4.4', '8.8.8.8']
+
+packages:
+- stress
+- daemon
+
+runcmd:
+ - curl {{ call_home_url }}
+ - daemon -- stress --vm {{ vm_workers }} --vm-bytes {{ malloc_mem_mb }}M
+#- ps aux | grep stress | curl --request POST --data-binary @- http://172.18.214.119:8080/
+
+
+

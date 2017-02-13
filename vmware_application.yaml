@@ -1,0 +1,28 @@
+---
+type: "vmware"
+app_config:
+  log_level: "DEBUG"
+env:
+  playbook_path: ./ansible
+  cloud:
+    hostname: "172.16.166.5"
+    username: "admin"
+    password: "secret"
+  monitoring_node:
+    hostname: "123.123.123.123"
+    username: "root"
+    password: "r00tme"
+scenarios:
+  vmware_test_scenario:
+    steps:
+#      - upload_vm_templates
+#      - prepare_network
+#      - clone_vms
+#      - boot_vms
+#      - wait_for_instance_become_available
+      - start_migration_monitor
+#      - start_downtimer
+      - vmotion_migrate
+      - stop_migration_monitor
+#      - stop_downtimer
+      - destroy_vms

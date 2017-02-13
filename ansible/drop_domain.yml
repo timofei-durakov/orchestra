@@ -1,0 +1,12 @@
+---
+- hosts: hard
+  remote_user: "{{ default_user }}"
+  become_method: sudo
+  become: yes
+  tasks:
+  - name: destroy domain
+    command: virsh destroy {{ domain_name }}
+    ignore_errors: yes
+  - name: undefine domain
+    command: virsh undefine {{ domain_name }}
+    ignore_errors: yes

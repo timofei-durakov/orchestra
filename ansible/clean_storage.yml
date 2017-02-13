@@ -1,0 +1,9 @@
+---
+- hosts: hard
+  remote_user: "{{ default_user }}"
+  become_method: sudo
+  become: yes
+  tasks:
+   - debug: msg={{ shared_storage }}
+  # - name: clean libvirt NFS share for images
+  #   command: rm -rf /var/lib/libvirt/images/config* /var/lib/libvirt/images/dom*
